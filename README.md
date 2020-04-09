@@ -15,7 +15,7 @@ For you to use the Neuron-C library, you'll need the "neuron.h" file included he
 * libblas.a
 * cblas.h
 
-These files should then live in the same directory as "neuron.h" and your project code. You'll have to call your compiler to include the BLAS library. This is explained below.
+These files should then live in the same directory as "neuron.h" and your project code. You'll have to call your compiler to include the BLAS library. Compiling BLAS is explained below. Compiling program with Neuron-C and BLAS is explained in this repository's examples.
 
 The following steps successfully create BLAS utilities version 3.8.0 on Ubuntu 16.04.
 
