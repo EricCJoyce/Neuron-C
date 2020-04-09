@@ -1,6 +1,9 @@
 #include "neuron.h"
 
 /*
+cblas_LINUX.a, libblas.a, and cblas.h need to be in the same directory as neuron.h and xor.c.
+This program creates a network file named "xor.nn".
+Issue the following commands to compile and run. 
 
 gcc -c -Wall xortest.c
 gfortran -o xortest xortest.o cblas_LINUX.a libblas.a
@@ -13,8 +16,6 @@ int main(int argc, char* argv[])
     NeuralNet* nn;
     double in[2];
     double* out;
-
-    srand(time(NULL));                                              //  Seed randomizer
 
     init_NN(&nn, 2);                                                //  Initialize for two inputs
 
