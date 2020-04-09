@@ -51,4 +51,6 @@ Now you have all three BLAS files. You can compile anything to use BLAS utilitie
 
 ## Transfer Trained Weights from Keras
 
+Too long to read? Watch [this]().
+
 (to be continued)
