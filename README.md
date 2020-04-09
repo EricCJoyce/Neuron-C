@@ -37,7 +37,7 @@ tar -xvzf cblas.tgz
 cd CBLAS/
 nano Makefile.in
 ```
-This last line opens a Linux file editor. Go to line 25 of `Makefile.in` and change it to read
+This last line opens nano, a Linux file editor. Go to line 25 of `Makefile.in` and change it to read
 ```
 BLLIB = ../lib/libblas.a
 ```
