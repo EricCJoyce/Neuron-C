@@ -5030,7 +5030,6 @@ unsigned int add_Dense(unsigned int inputs, unsigned int nodes, NeuralNet* nn)
 
 /* Set entirety of layer's weight matrix.
    Input buffer 'w' is expected to be ROW-MAJOR
-   (because it gets transposed by BLAS)
         weights W
    [ w0  w1  w2  w3  ]
    [ w4  w5  w6  w7  ]
@@ -5061,7 +5060,7 @@ void setW_i_Dense(double* w, unsigned int i, DenseLayer* layer)
     #endif
 
     for(j = 0; j <= layer->i; j++)
-      layer->W[i * (layer->i + 1) + j] = w[j];
+      layer->W[j * layer->n + i] = w[j];
     return;
   }
 
@@ -5072,12 +5071,20 @@ void setW_ij_Dense(double w, unsigned int i, unsigned int j, DenseLayer* layer)
     printf("setW_ij_Dense(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * (layer->i + 1) + j < (layer->i + 1) * layer->n)
-      layer->W[i * (layer->i + 1) + j] = w;
+    if(j * layer->n + i < (layer->i + 1) * layer->n)
+      layer->W[j * layer->n + i] = w;
     return;
   }
 
-/* Set entirety of layer's mask matrix */
+/* Set entirety of layer's mask matrix
+   Input buffer 'm' is expected to be ROW-MAJOR
+        masks M
+   [ m0  m1  m2  m3  ]
+   [ m4  m5  m6  m7  ]
+   [ m8  m9  m10 m11 ]
+   [ m12 m13 m14 m15 ]
+   [ m16 m17 m18 m19 ]  <--- biases
+*/
 void setM_Dense(bool* m, DenseLayer* layer)
   {
     unsigned int i;
@@ -5108,9 +5115,9 @@ void setM_i_Dense(bool* m, unsigned int i, DenseLayer* layer)
     for(j = 0; j <= layer->i; j++)
       {
         if(m[j])
-          layer->M[i * (layer->i + 1) + j] = 1.0;
+          layer->M[j * layer->n + i] = 1.0;
         else
-          layer->M[i * (layer->i + 1) + j] = 0.0;
+          layer->M[j * layer->n + i] = 0.0;
       }
     return;
   }
@@ -5125,12 +5132,12 @@ void setM_ij_Dense(bool m, unsigned int i, unsigned int j, DenseLayer* layer)
       printf("setM_ij_Dense(MASKED, %d, %d)\n", i, j);
     #endif
 
-    if(i * (layer->i + 1) + j < (layer->i + 1) * layer->n)
+    if(j * layer->n + i < (layer->i + 1) * layer->n)
       {
         if(m)
-          layer->M[i * (layer->i + 1) + j] = 1.0;
+          layer->M[j * layer->n + i] = 1.0;
         else
-          layer->M[i * (layer->i + 1) + j] = 0.0;
+          layer->M[j * layer->n + i] = 0.0;
       }
     return;
   }
