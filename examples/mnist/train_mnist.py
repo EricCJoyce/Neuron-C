@@ -1,3 +1,15 @@
+'''
+
+  Eric C. Joyce, Stevens Institute of Technology, 2020
+
+  Train a convolutional neural network to classify hand-written digits using Keras and the MNIST data set.
+  Notice that if we are to convert weights learned in Keras to an independent C program, then we have to
+  control the arrangements of outputs. That is the function of the Lambda layers below. Output from
+  convolution must be flattened, and then the flattened output must be re-routed to match the format of
+  Neuron-C's Accumulation Layer type.
+
+'''
+
 from keras import models
 from keras.layers import Input, Dense, Flatten, Conv2D, Lambda, concatenate, Dropout
 from keras.callbacks import ModelCheckpoint
