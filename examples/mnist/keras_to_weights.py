@@ -1,11 +1,15 @@
+'''
+  Eric C. Joyce, Stevens Institute of Technology, 2020
+
+  Load a Keras-trained model and export the weights of each layer to binary files.
+  e.g.
+    python keras_to_weights.py mnist_01.h5
+'''
+
 import sys
 import struct
 import keras
 from keras.models import load_model
-
-'''
-python keras_to_weights.py mnist_01.h5
-'''
 
 def main():
 	conv2dctr = 0
