@@ -97,6 +97,15 @@ int main(int argc, char* argv[])
     free(w);
 
     setF_i_Dense(SOFTMAX, 0, nn->denselayers + 1);                  //  Set output layer's activation function to softmax
+    setF_i_Dense(SOFTMAX, 1, nn->denselayers + 1);                  //  (Because we allow units to have different activation functions
+    setF_i_Dense(SOFTMAX, 2, nn->denselayers + 1);                  //  you have to set SOFTMAX for all output nodes.)
+    setF_i_Dense(SOFTMAX, 3, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 4, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 5, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 6, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 7, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 8, nn->denselayers + 1);
+    setF_i_Dense(SOFTMAX, 9, nn->denselayers + 1);
 
     /******************************************************************************/
     /******************************************************************************/
