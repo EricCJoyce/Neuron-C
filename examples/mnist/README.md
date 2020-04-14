@@ -41,4 +41,4 @@ Weights exported from mnist_06.h5 have been put in the **06** directory.
 
 ## Conclusion
 
-Take care when designing your training model in Keras and when writing your own code to absorb exported weights. This is not a one-size-fits-all solution. Thoughtfully design your model, and then mindfully translate its weights.
+Take care when modeling your network in Keras and when writing your own code to absorb exported weights. This is not a one-size-fits-all solution. Thoughtfully design your model, and then mindfully translate its weights.
