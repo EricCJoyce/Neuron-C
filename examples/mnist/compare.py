@@ -3,12 +3,12 @@
   
   Finally, let's compare our C-translation against the Keras original.
   e.g.  
-   python compare.py mnist_06.h5 mnist.nn sample_1.pgm
+   python compare.py mnist_06.h5 mnist.nn samples/sample_1.pgm
 
   sys.argv[0] = compare.py
   sys.argv[1] = Keras model file name (.h5)
   sys.argv[2] = neuron model file name (.nn)
-  sys.argv[3] = PGM filename
+  sys.argv[3] = PGM filepath
 '''
 
 import sys
