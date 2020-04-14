@@ -10,7 +10,7 @@
 
   gcc -c -Wall run.c
   gfortran -o run run.o cblas_LINUX.a libblas.a
-  ./run mnist.nn sample_1.pgm
+  ./run mnist.nn samples/sample_1.pgm
 */
 
 /**************************************************************************************************
