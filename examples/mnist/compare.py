@@ -35,7 +35,6 @@ def main():
 	args = ['./run', neuronFile, pgmfilename]
 	out = subprocess.check_output(args)
 	out = out.decode("utf-8").split('\n')[:-1]
-	print(out)
 	print('\nNeuron-C model returned:')
 	for i in range(0, len(out)):
 		print(out[i].split()[1])
