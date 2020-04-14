@@ -1,11 +1,16 @@
 #include "neuron.h"
 
 /*
+  Eric C. Joyce, Stevens Institute of Technology, 2020
 
-gcc -c -Wall run.c
-gfortran -o run run.o cblas_LINUX.a libblas.a
-./run mnist.nn sample_1.pgm
+  Read one of the 28-by-28 MNIST PGM files to be identified.
+  Convert its unsigned char values in [0, 255] to a double in [0.0, 1.0].
+  Input this floating-point buffer to the neural network.
+  Print each of the 10 output values.
 
+  gcc -c -Wall run.c
+  gfortran -o run run.o cblas_LINUX.a libblas.a
+  ./run mnist.nn sample_1.pgm
 */
 
 /**************************************************************************************************
