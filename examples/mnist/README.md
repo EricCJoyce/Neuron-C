@@ -44,15 +44,15 @@ Weights exported from mnist_06.h5 have been put in the `06` directory.
 Take care when modeling your network in Keras and when writing your own code to absorb exported weights. This is not a one-size-fits-all solution. Thoughtfully design your model, and then mindfully translate its weights.
 
 
-| Bitmap                                                                                                 | mnist_06.h5   | mnist.nn  |
-| ------------------------------------------------------------------------------------------------------ |:-------------:| ---------:|
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_0.pgm "0") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_1.pgm "1") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_2.pgm "2") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_3.pgm "3") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_4.pgm "4") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_5.pgm "5") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_6.pgm "6") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_7.pgm "7") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_8.pgm "8") |               |           |
-| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_9.pgm "9") |               |           |
+| Bitmap                                                                                                 | mnist_06.h5                                                                                                                                                                                   | mnist.nn                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------ |:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_0.pgm "0") | <ol start="0"><li>0.999912</li><li>0.000000</li><li>0.000001</li><li>0.000000</li><li>0.000001</li><li>0.000011</li><li>0.000055</li><li>0.000003</li><li>0.000005</li><li>0.000012</li></ol> | <ol start="0"><li>0.999912</li><li>0.000000</li><li>0.000001</li><li>0.000000</li><li>0.000001</li><li>0.000011</li><li>0.000055</li><li>0.000003</li><li>0.000005</li><li>0.000012</li></ol> |
+| ![MNIST 1](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_1.pgm "1") | <ol start="0"><li>0.000000</li><li>0.999929</li><li>0.000003</li><li>0.000000</li><li>0.000046</li><li>0.000001</li><li>0.000002</li><li>0.000012</li><li>0.000006</li><li>0.000000</li></ol> | <ol start="0"><li>0.000000</li><li>0.999929</li><li>0.000003</li><li>0.000000</li><li>0.000046</li><li>0.000001</li><li>0.000002</li><li>0.000012</li><li>0.000006</li><li>0.000000</li></ol> |
+| ![MNIST 2](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_2.pgm "2") |               |           |
+| ![MNIST 3](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_3.pgm "3") |               |           |
+| ![MNIST 4](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_4.pgm "4") |               |           |
+| ![MNIST 5](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_5.pgm "5") |               |           |
+| ![MNIST 6](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_6.pgm "6") |               |           |
+| ![MNIST 7](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_7.pgm "7") |               |           |
+| ![MNIST 8](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_8.pgm "8") |               |           |
+| ![MNIST 9](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_9.pgm "9") |               |           |
