@@ -42,3 +42,17 @@ Weights exported from mnist_06.h5 have been put in the `06` directory.
 ## Conclusion
 
 Take care when modeling your network in Keras and when writing your own code to absorb exported weights. This is not a one-size-fits-all solution. Thoughtfully design your model, and then mindfully translate its weights.
+
+
+| Bitmap                                                                                                 | mnist_06.h5   | mnist.nn  |
+| ------------------------------------------------------------------------------------------------------ |:-------------:| ---------:|
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_0.pgm "0") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_1.pgm "1") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_2.pgm "2") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_3.pgm "3") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_4.pgm "4") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_5.pgm "5") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_6.pgm "6") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_7.pgm "7") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_8.pgm "8") |               |           |
+| ![MNIST 0](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/samples/sample_9.pgm "9") |               |           |
