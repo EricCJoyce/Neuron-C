@@ -4,7 +4,18 @@ This demonstrates the real motivation behind Neuron-C: we want to be able to tra
 
 ## 1. Train a Convolutional Network in Keras
 
-(To be continued)
+**train_mnist.py** loads the MNIST dataset of hand-written digits, builds a model, and trains. 
+
+### Requirements
+- Python
+- Keras
+- TensorFlow
+- Numpy
+- Matplotlib (optional, for graphing results)
+
+Your results may vary, but my model reached its best incarnation at epoch 6. It has been saved to **mnist_06.h5**.
+
+![Training and Validation Loss](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/loss.png | width=600)
 
 ## 2. Export a Model's Weights
 
