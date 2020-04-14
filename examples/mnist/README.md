@@ -17,7 +17,7 @@ Your results may vary, but my model reached its best incarnation at epoch 6. It 
 
 ![Training and Validation Loss](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/loss.png "loss.png")
 
-The important thing to notice in this Python script is how the model is built. I designed the Neuron-C data structures to appeal to my intuition and organizational habits. The price of portability to my library is that I have to build Keras models with translation in mind. Beginning on line 38, this rather unlovely barrage of flattening and lambda-ing ensures that the convolutional filters Keras learned will align with the fully-connected layers that have learned to respond to them.
+The important thing to notice in this Python script is how the model is built. I designed the Neuron-C data structures to appeal to my intuition and organizational habits. The price of portability to my library is that I have to build Keras models with translation in mind. Beginning on line 38, this rather unlovely barrage of flattening and lambda-ing ensures that the convolutional filters Keras learned will align with the fully-connected layers that have learned to respond to them. The effect is illustrated below. Keras interleaves filter output; the Neuron-C Accumulator Layer expects them to be grouped.
 
 ![Sketch of Filter Alignment](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/filter_alignment.png "filter_alignment.png")
 
@@ -38,3 +38,7 @@ Weights exported from mnist_06.h5 have been put in the **06** directory.
 ## 5. Compare Results
 
 **compare.py** is a sanity check. We want to be sure that what the Neuron-C model outputs is the same as what the Keras model outputs.
+
+## Conclusion
+
+Take care when designing your training model in Keras and when writing your own code to absorb exported weights. This is not a one-size-fits-all solution. Thoughtfully design your model, and then mindfully translate its weights.
