@@ -15,7 +15,7 @@ This demonstrates the real motivation behind Neuron-C: we want to be able to tra
 
 Your results may vary, but my model reached its best incarnation at epoch 6. It has been saved to **mnist_06.h5**.
 
-![Training and Validation Loss](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/loss.png | width=600)
+![Training and Validation Loss](https://github.com/EricCJoyce/Neuron-C/blob/master/examples/mnist/loss.png "Loss")
 
 ## 2. Export a Model's Weights
 
