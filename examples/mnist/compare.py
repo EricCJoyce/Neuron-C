@@ -1,14 +1,20 @@
+'''
+  Eric C. Joyce, Stevens Institute of Technology, 2020
+  
+  Finally, let's compare our C-translation against the Keras original.
+  e.g.  
+   python compare.py mnist_06.h5 mnist.nn sample_1.pgm
+
+  sys.argv[0] = compare.py
+  sys.argv[1] = Keras model file name (.h5)
+  sys.argv[2] = neuron model file name (.nn)
+  sys.argv[3] = PGM filename
+'''
+
 import sys
 import subprocess
 import numpy as np
 from keras.models import load_model
-
-#  python compare.py mnist_06.h5 mnist.nn sample_1.pgm
-
-#  sys.argv[0] = compare.py
-#  sys.argv[1] = Keras model file name (.h5)
-#  sys.argv[2] = neuron model file name (.nn)
-#  sys.argv[3] = PGM filename
 
 def main():
 	kerasFile = sys.argv[1]
