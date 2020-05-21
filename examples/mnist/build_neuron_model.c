@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
     free(w);
 
     add_Dense(100, 10, nn);                                         //  Add dense layer (DENSE_ARRAY, 1)
-    setName_Dense("Dense-1", nn->denselayers + 1);                  //  Name the third dense layer
+    setName_Dense("Dense-1", nn->denselayers + 1);                  //  Name the second dense layer
     len = sprintf(buffer, "%s/Dense-1.weights", argv[1]);
     buffer[len] = '\0';
     readWeights(buffer, &w);
