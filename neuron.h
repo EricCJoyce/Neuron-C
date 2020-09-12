@@ -1,3 +1,6 @@
+#ifndef __NEURON_H
+#define __NEURON_H
+
 /**************************************************************************************************
  Neural Network library, by Eric C. Joyce
 
@@ -110,9 +113,6 @@
 #include <time.h>
 #include <unistd.h>
 #include "cblas.h"
-
-#ifndef __NEURON_H
-#define __NEURON_H
 
 #define INPUT_ARRAY   0                                             /* Flag refers to network input */
 #define DENSE_ARRAY   1                                             /* Flag refers to 'denselayers' */
@@ -526,10 +526,10 @@ void free_NN(NeuralNet* nn)
 unsigned int run_NN(double* x, NeuralNet* nn, double** z)
   {
     double* in;
-    unsigned int inLen;
-    unsigned int outLen;
+    unsigned int inLen = 0;
+    unsigned int outLen = 0;
     unsigned int i, j, k, l;
-    unsigned int last;
+    unsigned int last = 0;
     unsigned int t;                                                 //  For reading from LSTMs
 
     #ifdef __NEURON_DEBUG
@@ -1287,7 +1287,7 @@ bool load_NN(char* filename, NeuralNet* nn)
   {
     FILE* fp;
     unsigned char* ucharBuffer;
-    bool* boolBuffer;
+    bool* boolBuffer = NULL;
     unsigned int* uintBuffer;
     double* doubleBuffer;
     unsigned int len;
@@ -1316,7 +1316,11 @@ bool load_NN(char* filename, NeuralNet* nn)
         exit(1);
       }
 
-    fread(uintBuffer, sizeof(int), 7, fp);                          //  Read 6 objects of size int into buffer
+    if(fread(uintBuffer, sizeof(int), 7, fp) != 7)                  //  Read 7 objects of size int into buffer
+      {
+        printf("ERROR: Unable to read network parameters into buffer\n");
+        exit(1);
+      }
     nn->i = uintBuffer[0];                                          //  Read NeuralNet input count from buffer
     nn->len = uintBuffer[1];                                        //  Read NeuralNet edge list length from buffer
     nn->denseLen = uintBuffer[2];                                   //  Read NeuralNet DenseLayer list length from buffer
@@ -1335,21 +1339,33 @@ bool load_NN(char* filename, NeuralNet* nn)
     printf("  nn->gruLen   = %d\n", nn->gruLen);
     #endif
 
-    fread(ucharBuffer, sizeof(char), 1, fp);                        //  Read 1 object of size char into buffer
+    if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)                //  Read 1 object of size char into buffer
+      {
+        printf("ERROR: Unable to read number of network variables into buffer\n");
+        exit(1);
+      }
     nn->vars = ucharBuffer[0];                                      //  Read NeuralNet variable count from buffer
 
     #ifdef __NEURON_DEBUG
     printf("  nn->vars     = %d\n", nn->vars);
     #endif
 
-    fread(uintBuffer, sizeof(int), 1, fp);                          //  Read 1 object of size int into buffer
+    if(fread(uintBuffer, sizeof(int), 1, fp) != 1)                  //  Read 1 object of size int into buffer
+      {
+        printf("ERROR: Unable to read network generation into buffer\n");
+        exit(1);
+      }
     nn->gen = uintBuffer[0];                                        //  Read NeuralNet generation/epoch from buffer
 
     #ifdef __NEURON_DEBUG
     printf("  nn->gen      = %d\n", nn->gen);
     #endif
 
-    fread(doubleBuffer, sizeof(double), 1, fp);                     //  Read 1 object of size double into buffer
+    if(fread(doubleBuffer, sizeof(double), 1, fp) != 1)             //  Read 1 object of size double into buffer
+      {
+        printf("ERROR: Unable to read network fitness into buffer\n");
+        exit(1);
+      }
     nn->fit = doubleBuffer[0];                                      //  Read NeuralNet fitness from buffer
 
     #ifdef __NEURON_DEBUG
@@ -1361,7 +1377,12 @@ bool load_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
         exit(1);
       }
-    fread(ucharBuffer, sizeof(char), COMMSTR_LEN, fp);              //  Read COMMSTR_LEN objects of size char into buffer
+                                                                    //  Read COMMSTR_LEN objects of size char into buffer
+    if(fread(ucharBuffer, sizeof(char), COMMSTR_LEN, fp) != COMMSTR_LEN)
+      {
+        printf("ERROR: Unable to read network comment into buffer\n");
+        exit(1);
+      }
     for(i = 0; i < COMMSTR_LEN; i++)                                //  Read NeuralNet comment from buffer
       nn->comment[i] = ucharBuffer[i];
 
@@ -1381,15 +1402,31 @@ bool load_NN(char* filename, NeuralNet* nn)
       }
     for(i = 0; i < nn->len; i++)                                    //  Read all Edges from file
       {
-        fread(ucharBuffer, sizeof(char), 1, fp);                    //  Read 1 object of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)            //  Read 1 object of size char into buffer
+          {
+            printf("ERROR: Unable to read network edge source into buffer\n");
+            exit(1);
+          }
         nn->edgelist[i].srcType = ucharBuffer[0];                   //  Read edge source type from buffer
-        fread(uintBuffer, sizeof(int), 3, fp);                      //  Read 3 objects of size int into buffer
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read network edge descriptors into buffer\n");
+            exit(1);
+          }
         nn->edgelist[i].srcIndex = uintBuffer[0];                   //  Read edge source index from buffer
         nn->edgelist[i].selectorStart = uintBuffer[1];              //  Read edge selector start from buffer
         nn->edgelist[i].selectorEnd = uintBuffer[2];                //  Read edge selector end from buffer
-        fread(ucharBuffer, sizeof(char), 1, fp);                    //  Read 1 object of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)            //  Read 1 object of size char into buffer
+          {
+            printf("ERROR: Unable to read network edge destination type into buffer\n");
+            exit(1);
+          }
         nn->edgelist[i].dstType = ucharBuffer[0];                   //  Read edge destination type from buffer
-        fread(uintBuffer, sizeof(int), 1, fp);                      //  Read 1 object of size int into buffer
+        if(fread(uintBuffer, sizeof(int), 1, fp) != 1)              //  Read 1 object of size int into buffer
+          {
+            printf("ERROR: Unable to read network edge destination into buffer\n");
+            exit(1);
+          }
         nn->edgelist[i].dstIndex = uintBuffer[0];                   //  Read edge destination index from buffer
 
         #ifdef __NEURON_DEBUG
@@ -1415,7 +1452,11 @@ bool load_NN(char* filename, NeuralNet* nn)
           }
         for(i = 0; i < nn->denseLen; i++)
           {
-            fread(uintBuffer, sizeof(int), 2, fp);                  //  Read 2 objects of size int into buffer
+            if(fread(uintBuffer, sizeof(int), 2, fp) != 2)          //  Read 2 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read Dense Layer parameters into buffer\n");
+                exit(1);
+              }
             nn->denselayers[i].i = uintBuffer[0];                   //  Read number of inputs for DenseLayer[i] from buffer
             nn->denselayers[i].n = uintBuffer[1];                   //  Read number of units for DenseLayer[i] from buffer
             #ifdef __NEURON_DEBUG
@@ -1446,7 +1487,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read Dense Layer weights into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read DenseLayer[i]'s weights from buffer
               nn->denselayers[i].W[j] = doubleBuffer[j];            //  in the order in which they exist in the file.
             #ifdef __NEURON_DEBUG
@@ -1470,7 +1515,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                     exit(1);
                   }
               }
-            fread(boolBuffer, sizeof(bool), len, fp);               //  Read 'len' objects of size bool into buffer
+            if(fread(boolBuffer, sizeof(bool), len, fp) != len)     //  Read 'len' objects of size bool into buffer
+              {
+                printf("ERROR: Unable to read Dense Layer masks into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read DenseLayer[i]'s weights from buffer
               {
                 if(boolBuffer[j])                                   //  True means UNMASKED, means w * 1.0
@@ -1494,7 +1543,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
                 exit(1);
               }
-            fread(ucharBuffer, sizeof(char), len, fp);              //  Read 'len' objects of size char into buffer
+            if(fread(ucharBuffer, sizeof(char), len, fp) != len)    //  Read 'len' objects of size char into buffer
+              {
+                printf("ERROR: Unable to read Dense Layer functions into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read function flags
               nn->denselayers[i].f[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1512,7 +1565,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read Dense Layer alpha into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read function auxiliaries
               nn->denselayers[i].alpha[j] = doubleBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1525,7 +1582,12 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
                 exit(1);
               }
-            fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);   //  Read LAYER_NAME_LEN objects of size char to buffer
+                                                                    //  Read LAYER_NAME_LEN objects of size char to buffer
+            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+              {
+                printf("ERROR: Unable to read Dense Layer name into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read layer name
               nn->denselayers[i].name[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1545,7 +1607,11 @@ bool load_NN(char* filename, NeuralNet* nn)
           }
         for(i = 0; i < nn->convLen; i++)                            //  Read in all convolutional layers
           {
-            fread(uintBuffer, sizeof(int), 3, fp);                  //  Read 3 objects of size int into buffer
+            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read Convolution Layer parameters into buffer");
+                exit(1);
+              }
             nn->convlayers[i].inputW = uintBuffer[0];               //  Read Conv2DLayer input width from buffer
             nn->convlayers[i].inputH = uintBuffer[1];               //  Read Conv2DLayer input height from buffer
             nn->convlayers[i].n = uintBuffer[2];                    //  Read number of Conv2DLayer filters from buffer
@@ -1562,7 +1628,11 @@ bool load_NN(char* filename, NeuralNet* nn)
               }
             for(j = 0; j < nn->convlayers[i].n; j++)                //  Fill in details of each filter in this layer
               {
-                fread(uintBuffer, sizeof(int), 2, fp);              //  Read 2 objects of size int into buffer
+                if(fread(uintBuffer, sizeof(int), 2, fp) != 2)      //  Read 2 objects of size int into buffer
+                  {
+                    printf("ERROR: Unable to read dimensions for Convolution Layer filter[%d] into buffer", j);
+                    exit(1);
+                  }
                 nn->convlayers[i].filters[j].w = uintBuffer[0];     //  Read dimensions
                 nn->convlayers[i].filters[j].h = uintBuffer[1];
                 #ifdef __NEURON_DEBUG
@@ -1578,10 +1648,15 @@ bool load_NN(char* filename, NeuralNet* nn)
                   }
                 if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
                   {
-                    printf("ERROR: Unable to reallocate double buffer for writing to file\n");
+                    printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                     exit(1);
                   }
-                fread(doubleBuffer, sizeof(double), len, fp);       //  Read len objects of size double into buffer
+                                                                    //  Read len objects of size double into buffer
+                if(fread(doubleBuffer, sizeof(double), len, fp) != len)
+                  {
+                    printf("ERROR: Unable to read weights for Convolution Layer filter %d into buffer", j);
+                    exit(1);
+                  }
                 for(k = 0; k < len; k++)                            //  Read Filter2D weights and bias
                   nn->convlayers[i].filters[j].W[k] = doubleBuffer[k];
                 #ifdef __NEURON_DEBUG
@@ -1610,7 +1685,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
                 exit(1);
               }
-            fread(ucharBuffer, sizeof(char), len, fp);              //  Read 'len' objects of size char into buffer
+            if(fread(ucharBuffer, sizeof(char), len, fp) != len)    //  Read 'len' objects of size char into buffer
+              {
+                printf("ERROR: Unable to read Convolution Layer functions into buffer");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read function flag array for layer[i]
               nn->convlayers[i].f[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1628,7 +1707,11 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read Convolution Layer alpha into buffer");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read function auxiliaries for layer[i]
               nn->convlayers[i].alpha[j] = doubleBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1641,7 +1724,12 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
                 exit(1);
               }
-            fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);   //  Read LAYER_NAME_LEN objects of size char into buffer
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+              {
+                printf("ERROR: Unable to read Convolution Layer into buffer");
+                exit(1);
+              }
             for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read layer name
               nn->convlayers[i].name[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1666,7 +1754,11 @@ bool load_NN(char* filename, NeuralNet* nn)
 
         for(i = 0; i < nn->accumLen; i++)                           //  Read all Accumulator Layers from file
           {
-            fread(uintBuffer, sizeof(int), 1, fp);                  //  Read 1 object of size int into buffer
+            if(fread(uintBuffer, sizeof(int), 1, fp) != 1)          //  Read 1 object of size int into buffer
+              {
+                printf("ERROR: Unable to read Accumulation Layer parameter into buffer\n");
+                exit(1);
+              }
             nn->accumlayers[i].i = uintBuffer[0];                   //  Read number of Accumulator inputs
             #ifdef __NEURON_DEBUG
             printf("  nn->accumlayers[%d].i = %d\n", i, nn->accumlayers[i].i);
@@ -1679,8 +1771,12 @@ bool load_NN(char* filename, NeuralNet* nn)
               }
             for(j = 0; j < nn->accumlayers[i].i; j++)               //  Allocate and blank out output array
               nn->accumlayers[i].out[j] = 0.0;
-
-            fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);   //  Read LAYER_NAME_LEN objects of size char into buffer
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+              {
+                printf("ERROR: Unable to read Accumulation Layer name into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read Accumulator layer name
               nn->accumlayers[i].name[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
@@ -1704,7 +1800,11 @@ bool load_NN(char* filename, NeuralNet* nn)
           }
         for(i = 0; i < nn->lstmLen; i++)
           {
-            fread(uintBuffer, sizeof(int), 3, fp);                  //  Read 3 objects of size int into buffer
+            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read LSTM parameters into buffer\n");
+                exit(1);
+              }
             nn->lstmlayers[i].d = uintBuffer[0];                    //  Read input dimensionality for LSTMLayer[i] from buffer
             nn->lstmlayers[i].h = uintBuffer[1];                    //  Read state dimensionality for LSTMLayer[i] from buffer
             nn->lstmlayers[i].cache = uintBuffer[2];                //  Read state cache size for LSTMLayer[i] from buffer
@@ -1741,16 +1841,32 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Wi into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wi weights from buffer
               nn->lstmlayers[i].Wi[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Wo into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wo weights from buffer
               nn->lstmlayers[i].Wo[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Wf into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wf weights from buffer
               nn->lstmlayers[i].Wf[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Wc into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wc weights from buffer
               nn->lstmlayers[i].Wc[j] = doubleBuffer[j];
 
@@ -1780,16 +1896,32 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Ui into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Ui weights from buffer
               nn->lstmlayers[i].Ui[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Uo into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uo weights from buffer
               nn->lstmlayers[i].Uo[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Uf into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uf weights from buffer
               nn->lstmlayers[i].Uf[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM Uc into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uc weights from buffer
               nn->lstmlayers[i].Uc[j] = doubleBuffer[j];
 
@@ -1824,16 +1956,32 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM bi into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bi bias from buffer
               nn->lstmlayers[i].bi[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM bo into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bo bias from buffer
               nn->lstmlayers[i].bo[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM bf into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bf bias from buffer
               nn->lstmlayers[i].bf[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read LSTM bc into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bc bias from buffer
               nn->lstmlayers[i].bc[j] = doubleBuffer[j];
             for(j = 0; j < len; j++)                                //  Set vector c to zero-vector
@@ -1865,7 +2013,11 @@ bool load_NN(char* filename, NeuralNet* nn)
           }
         for(i = 0; i < nn->gruLen; i++)
           {
-            fread(uintBuffer, sizeof(int), 3, fp);                  //  Read 3 objects of size int into buffer
+            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read GRU parameters into buffer\n");
+                exit(1);
+              }
             nn->grulayers[i].d = uintBuffer[0];                     //  Read input dimensionality for GRULayer[i] from buffer
             nn->grulayers[i].h = uintBuffer[1];                     //  Read state dimensionality for GRULayer[i] from buffer
             nn->grulayers[i].cache = uintBuffer[2];                 //  Read state cache size for GRULayer[i] from buffer
@@ -1897,13 +2049,25 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Wz into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wz weights from buffer
               nn->grulayers[i].Wz[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Wr into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wr weights from buffer
               nn->grulayers[i].Wr[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Wz into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wh weights from buffer
               nn->grulayers[i].Wh[j] = doubleBuffer[j];
 
@@ -1928,13 +2092,25 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Uz into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Uz weights from buffer
               nn->grulayers[i].Uz[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Ur into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Ur weights from buffer
               nn->grulayers[i].Ur[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU Uh into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Uh weights from buffer
               nn->grulayers[i].Uh[j] = doubleBuffer[j];
 
@@ -1959,13 +2135,25 @@ bool load_NN(char* filename, NeuralNet* nn)
                 printf("ERROR: Unable to reallocate double buffer for reading from file\n");
                 exit(1);
               }
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU bz into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s bz bias from buffer
               nn->grulayers[i].bz[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU br into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s br bias from buffer
               nn->grulayers[i].br[j] = doubleBuffer[j];
-            fread(doubleBuffer, sizeof(double), len, fp);           //  Read 'len' objects of size double into buffer
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
+              {
+                printf("ERROR: Unable to read GRU bh into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s bh bias from buffer
               nn->grulayers[i].bh[j] = doubleBuffer[j];
 
@@ -1989,14 +2177,23 @@ bool load_NN(char* filename, NeuralNet* nn)
           }
         for(i = 0; i < nn->vars; i++)                               //  Write all Variables to file
           {
-            fread(ucharBuffer, sizeof(char), VARSTR_LEN, fp);       //  Read VARSTR_LEN objects of size char into buffer
+                                                                    //  Read VARSTR_LEN objects of size char into buffer
+            if(fread(ucharBuffer, sizeof(char), VARSTR_LEN, fp) != VARSTR_LEN)
+              {
+                printf("ERROR: Unable to read variable string into buffer\n");
+                exit(1);
+              }
             for(j = 0; j < VARSTR_LEN; j++)
               nn->variables[i].key[j] = ucharBuffer[j];
             #ifdef __NEURON_DEBUG
             printf("  nn->variables[%d].key = %s\n", i, nn->variables[i].key);
             #endif
 
-            fread(doubleBuffer, sizeof(double), 1, fp);             //  Read buffer, write 1 object of size double
+            if(fread(doubleBuffer, sizeof(double), 1, fp) != 1)     //  Read buffer, write 1 object of size double
+              {
+                printf("ERROR: Unable to read variable value into buffer\n");
+                exit(1);
+              }
             nn->variables[i].value = doubleBuffer[0];
             #ifdef __NEURON_DEBUG
             printf("  nn->variables[%d].value = %.6f\n", i, nn->variables[i].value);
@@ -2610,7 +2807,7 @@ void sortEdges(NeuralNet* nn)
     Edge* addition;                                                 //  Track latest addition to sorted list
     unsigned int additionlen;
 
-    Edge* swap;                                                     //  Hold Edge objects to be moved
+    Edge* swap = NULL;                                              //  Hold Edge objects to be moved
     unsigned int swaplen;
 
     #ifdef __NEURON_DEBUG
