@@ -54,3 +54,18 @@ Now you have all three BLAS files. You can compile anything to use BLAS utilitie
 Too long to read? Watch [this]().
 
 (to be continued)
+
+## Citation
+
+If this code was helpful for your research, please consider citing this repository.
+
+```
+@misc{neuron_c_2020,
+  title={Neuron-C},
+  author={Eric C. Joyce},
+  year={2020},
+  publisher={Github},
+  journal={GitHub repository},
+  howpublished={\url{https://github.com/EricCJoyce/Neuron-C}}
+}
+```
