@@ -10,12 +10,12 @@ Too long to read? Watch [this guy](https://www.youtube.com/watch?v=fiNG_Btbx0g).
 
 BLAS is a Fortran library of expertly optimized linear algebraic functions. Neuron-C uses BLAS to do matrix-matrix and matrix-vector multiplication as quickly as possible. Why depend on BLAS rather than write these routines myself? BLAS is the bedrock of linear algebraic operations. As [Dr. Shusen Wang](http://wangshusen.github.io/) says, "Do not try to write and optimize these operations yourself. There are just... too many tricks."
 
-For you to use the Neuron-C library, you'll need the "neuron.h" file included here plus three files you'll have to build yourself so that they're tailored to your machine. You can name these files anything you wish, but let's call them:
+For you to use the Neuron-C library, you'll need the "\*.h" files included here plus three files you'll have to build yourself so that they're tailored to your machine. You can name these files anything you wish, but let's call them:
 * cblas_LINUX.a
 * libblas.a
 * cblas.h
 
-These files should then live in the same directory as "neuron.h" and your project code. You'll have to call your compiler to include the BLAS library. Compiling BLAS is explained below. Compiling programs with Neuron-C and BLAS is explained in this repository's examples.
+These files should then live in the same directory as the "\*.h" files and your project code. You'll have to call your compiler to include the BLAS library. Compiling BLAS is explained below. Compiling programs with Neuron-C and BLAS is demonstrated in this repository's examples.
 
 The following steps successfully create BLAS utilities version 3.8.0 on Ubuntu 16.04.
 
