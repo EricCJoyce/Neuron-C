@@ -4,102 +4,6 @@
 /**************************************************************************************************
  Neural Network library, by Eric C. Joyce
 
- Model a Dense Layer as two matrices and two vectors:
-
-    input vec{x}         weights W             masks M
- [ x1 x2 x3 x4 1 ]  [ w11 w12 w13 w14 ]  [ m11 m12 m13 m14 ]
-                    [ w21 w22 w23 w24 ]  [ m21 m22 m23 m24 ]
-                    [ w31 w32 w33 w34 ]  [ m31 m32 m33 m34 ]
-                    [ w41 w42 w43 w44 ]  [ m41 m42 m43 m44 ]
-                    [ w51 w52 w53 w54 ]  [  1   1   1   1  ]
-
-                    activation function
-                         vector f
-               [ func1 func2 func3 func4 ]
-
-                     auxiliary vector
-                          alpha
-               [ param1 param2 param3 param4 ]
-
- Broadcast W and M = W'
- vec{x} dot W' = x'
- vec{output} is func[i](x'[i], param[i]) for each i
-
- Not all activation functions need a parameter. It's just a nice feature we like to offer.
-
- Model a Convolutional Layer as an array of one or more 2D filters:
-
-  input mat{X} w, h       filter1      activation function vector f
- [ x11 x12 x13 x14 ]    [ w11 w12 ]   [ func1 func2 ]
- [ x21 x22 x23 x24 ]    [ w21 w22 ]
- [ x31 x32 x33 x34 ]    [ bias ]       auxiliary vector alpha
- [ x41 x42 x43 x44 ]                  [ param1 param2 ]
- [ x51 x52 x53 x54 ]      filter2
-                      [ w11 w12 w13 ]
-                      [ w21 w22 w23 ]
-                      [ w31 w32 w33 ]
-                      [ bias ]
-
- Filters needn't be arranged from smallest to largest; this is just for illustration.
-
- Model an LSTM Layer as matrices and vectors:
-  d = the length of a single input instance
-      (that is, we may have an indefinitely long sequence of word-vectors, but each is an input instance of length 'd')
-  h = the length of internal state vectors
-  cache = the number of previous states to track and store
-
-  input d-vec{x}       weights Wi              weights Wo              weights Wf              weights Wc
- [ x1 x2 x3 x4 ]        (h by d)                (h by d)                (h by d)                (h by d)
-                 [ wi11 wi12 wi13 wi14 ] [ wo11 wo12 wo13 wo14 ] [ wf11 wf12 wf13 wf14 ] [ wc11 wc12 wc13 wc14 ]
-                 [ wi21 wi22 wi23 wi24 ] [ wo21 wo22 wo23 wo24 ] [ wf21 wf22 wf23 wf24 ] [ wc21 wc22 wc23 wc24 ]
-                 [ wi31 wi32 wi33 wi34 ] [ wo31 wo32 wo33 wo34 ] [ wf31 wf32 wf33 wf34 ] [ wc31 wc32 wc33 wc34 ]
-
-                       weights Ui              weights Uo              weights Uf              weights Uc
-                        (h by h)                (h by h)                (h by h)                (h by h)
-                 [ ui11 ui12 ui13 ]      [ uo11 uo12 uo13 ]      [ uf11 uf12 uf13 ]      [ uc11 uc12 uc13 ]
-                 [ ui21 ui22 ui23 ]      [ uo21 uo22 uo23 ]      [ uf21 uf22 uf23 ]      [ uc21 uc22 uc23 ]
-                 [ ui31 ui32 ui33 ]      [ uo31 uo32 uo33 ]      [ uf31 uf32 uf33 ]      [ uc31 uc32 uc33 ]
-
-                     bias h-vec{bi}          bias h-vec{bo}          bias h-vec{bf}          bias h-vec{bc}
-                 [ bi1 ]                 [ bo1 ]                 [ bf1 ]                 [ bc1 ]
-                 [ bi2 ]                 [ bo2 ]                 [ bf2 ]                 [ bc2 ]
-                 [ bi3 ]                 [ bo3 ]                 [ bf3 ]                 [ bc3 ]
-
-         H state cache (times 1, 2, 3, 4 = columns 0, 1, 2, 3)
-        (h by cache)
- [ H11 H12 H13 H14 ]
- [ H21 H22 H23 H24 ]
- [ H31 H32 H33 H34 ]
-
- Model a GRU Layer as matrices and vectors:
-  d = the length of a single input instance
-      (that is, we may have an indefinitely long sequence of word-vectors, but each is an input instance of length 'd')
-  h = the length of internal state vectors
-  cache = the number of previous states to track and store
-
-  input d-vec{x}       weights Wz              weights Wr              weights Wh
- [ x1 x2 x3 x4 ]        (h by d)                (h by d)                (h by d)
-                 [ wz11 wz12 wz13 wz14 ] [ wr11 wr12 wr13 wr14 ] [ wh11 wh12 wh13 wh14 ]
-                 [ wz21 wz22 wz23 wz24 ] [ wr21 wr22 wr23 wr24 ] [ wh21 wh22 wh23 wh24 ]
-                 [ wz31 wz32 wz33 wz34 ] [ wr31 wr32 wr33 wr34 ] [ wh31 wh32 wh33 wh34 ]
-
-                       weights Uz              weights Ur              weights Uh
-                        (h by h)                (h by h)                (h by h)
-                 [ uz11 uz12 uz13 ]      [ ur11 ur12 ur13 ]      [ uh11 uh12 uh13 ]
-                 [ uz21 uz22 uz23 ]      [ ur21 ur22 ur23 ]      [ uh21 uh22 uh23 ]
-                 [ uz31 uz32 uz33 ]      [ ur31 ur32 ur33 ]      [ uh31 uh32 uh33 ]
-
-                     bias h-vec{bz}          bias h-vec{br}          bias h-vec{bh}
-                 [ bz1 ]                 [ br1 ]                 [ bh1 ]
-                 [ bz2 ]                 [ br2 ]                 [ bh2 ]
-                 [ bz3 ]                 [ br3 ]                 [ bh3 ]
-
-         H state cache (times 1, 2, 3, 4 = columns 0, 1, 2, 3)
-        (h by cache)
- [ H11 H12 H13 H14 ]
- [ H21 H22 H23 H24 ]
- [ H31 H32 H33 H34 ]
-
  Note that this file does NOT seed the randomizer. That should be done by the parent program.
 ***************************************************************************************************/
 #include <ctype.h>
@@ -114,21 +18,24 @@
 #include <unistd.h>
 #include "cblas.h"
 
+#include "accum.h"                                                  /* Include Accumulator Layer library */
+#include "conv2d.h"                                                 /* Include 2D-Convolutional Layer library */
+#include "dense.h"                                                  /* Include Dense Layer library */
+#include "gru.h"                                                    /* Include GRU Layer library */
+#include "lstm.h"                                                   /* Include LSTM Layer library */
+#include "normalization.h"                                          /* Include Normalization Layer library */
+#include "pooling.h"                                                /* Include Pooling Layer library */
+#include "upres.h"                                                  /* Include Up-Res (a.k.a. Transpose Convolution) Layer library */
+
 #define INPUT_ARRAY   0                                             /* Flag refers to network input */
 #define DENSE_ARRAY   1                                             /* Flag refers to 'denselayers' */
 #define CONV2D_ARRAY  2                                             /* Flag refers to 'convlayers' */
 #define ACCUM_ARRAY   3                                             /* Flag refers to 'accumlayers' */
 #define LSTM_ARRAY    4                                             /* Flag refers to 'lstmlayers' */
 #define GRU_ARRAY     5                                             /* Flag refers to 'grulayers' */
-
-#define RELU                 0                                      /* [ 0.0, inf) */
-#define LEAKY_RELU           1                                      /* (-inf, inf) */
-#define SIGMOID              2                                      /* ( 0.0, 1.0) */
-#define HYPERBOLIC_TANGENT   3                                      /* [-1.0, 1.0] */
-#define SOFTMAX              4                                      /* [ 0.0, 1.0] */
-#define SYMMETRICAL_SIGMOID  5                                      /* (-1.0, 1.0) */
-#define THRESHOLD            6                                      /* { 0.0, 1.0} */
-#define LINEAR               7                                      /* (-inf, inf) */
+#define POOL_ARRAY    6                                             /* Flag refers to 'poollayers' */
+#define UPRES_ARRAY   7                                             /* Flag refers to 'upreslayers' */
+#define NORMAL_ARRAY  8                                             /* Flag refers to 'normallayers' */
 
 #define VARSTR_LEN      16                                          /* Length of a Variable key string */
 #define LAYER_NAME_LEN  32                                          /* Length of a Layer 'name' string */
@@ -137,98 +44,6 @@
 /*
 #define __NEURON_DEBUG 1
 */
-
-typedef struct DenseLayerType
-  {
-    unsigned int i;                                                 //  Number of inputs--NOT COUNTING the added bias-1
-    unsigned int n;                                                 //  Number of processing units in this layer
-    double* W;                                                      //  ((i + 1) x n) matrix
-    double* M;                                                      //  ((i + 1) x n) matrix, all either 0.0 or 1.0
-    unsigned char* f;                                               //  n-array
-    double* alpha;                                                  //  n-array
-    char name[LAYER_NAME_LEN];
-    double* out;
-  } DenseLayer;
-
-typedef struct Filter2DType
-  {
-    unsigned int w;                                                 //  Width of the filter
-    unsigned int h;                                                 //  Height of the filter
-    double* W;                                                      //  Array of (w * h) weights, arranged row-major, +1 for the bias
-  } Filter2D;
-
-typedef struct Conv2DLayerType
-  {
-    unsigned int inputW, inputH;                                    //  Dimensions of the input
-    unsigned int n;                                                 //  Number of processing units in this layer =
-                                                                    //  number of filters in this layer
-    Filter2D* filters;                                              //  Array of 2D filter structs
-
-    unsigned char* f;                                               //  Array of function flags, length equal to the number of filters
-    double* alpha;                                                  //  Array of function parameters, length equal to the number of filters
-
-    char name[LAYER_NAME_LEN];
-    double* out;
-  } Conv2DLayer;
-
-typedef struct AccumLayerType
-  {
-    unsigned int i;                                                 //  Number of inputs--ACCUMULATORS GET NO bias-1
-    char name[LAYER_NAME_LEN];
-    double* out;
-  } AccumLayer;
-
-typedef struct LSTMLayerType
-  {
-    unsigned int d;                                                 //  Dimensionality of input vector
-    unsigned int h;                                                 //  Dimensionality of hidden state vector
-    unsigned int cache;                                             //  The number of states to keep in memory:
-                                                                    //  when 't' exceeds this, shift out.
-    unsigned int t;                                                 //  The time step
-                                                                    //  W matrices are (h by d)
-    double* Wi;                                                     //  Input gate weights
-    double* Wo;                                                     //  Output gate weights
-    double* Wf;                                                     //  Forget gate weights
-    double* Wc;                                                     //  Memory cell weights
-                                                                    //  U matrices are (h by h)
-    double* Ui;                                                     //  Recurrent connection input gate weights
-    double* Uo;                                                     //  Recurrent connection output gate weights
-    double* Uf;                                                     //  Recurrent connection forget gate weights
-    double* Uc;                                                     //  Recurrent connection memory cell weights
-                                                                    //  Bias vectors are length h
-    double* bi;                                                     //  Input gate bias
-    double* bo;                                                     //  Output gate bias
-    double* bf;                                                     //  Forget gate bias
-    double* bc;                                                     //  Memory cell bias
-
-    double* c;                                                      //  Cell state vector, length h
-    double* H;                                                      //  Hidden state cache matrix (h by cache)
-    char name[LAYER_NAME_LEN];
-  } LSTMLayer;
-
-typedef struct GRULayerType
-  {
-    unsigned int d;                                                 //  Dimensionality of input vector
-    unsigned int h;                                                 //  Dimensionality of hidden state vector
-    unsigned int cache;                                             //  The number of states to keep in memory:
-                                                                    //  when 't' exceeds this, shift out.
-    unsigned int t;                                                 //  The time step
-                                                                    //  W matrices are (h by d)
-    double* Wz;                                                     //  Update gate weights
-    double* Wr;                                                     //  Reset gate weights
-    double* Wh;                                                     //  Output gate weights
-                                                                    //  U matrices are (h by h)
-    double* Uz;                                                     //  Recurrent connection update gate weights
-    double* Ur;                                                     //  Recurrent connection reset gate weights
-    double* Uh;                                                     //  Recurrent connection output gate weights
-                                                                    //  Bias vectors are length h
-    double* bz;                                                     //  Update gate bias
-    double* br;                                                     //  Reset gate bias
-    double* bh;                                                     //  Output gate bias
-
-    double* H;                                                      //  Hidden state cache matrix (h by cache)
-    char name[LAYER_NAME_LEN];
-  } GRULayer;
 
 typedef struct VariableType
   {
@@ -252,7 +67,6 @@ typedef struct EdgeType
 
     unsigned char dstType;                                          //  Indicates in which array to find the destination
     unsigned int dstIndex;                                          //  Index into that array
-
   } Edge;
 
 typedef struct NeuralNetType
@@ -276,6 +90,15 @@ typedef struct NeuralNetType
 
     GRULayer* grulayers;                                            //  Array of GRU Layers
     unsigned int gruLen;                                            //  Length of that array
+
+    Pool2DLayer* poollayers;                                        //  Array of Pooling Layers
+    unsigned int poolLen;                                           //  Length of that array
+
+    UpresLayer* upreslayers;                                        //  Array of Upres Layers
+    unsigned int upresLen;                                          //  Length of that array
+
+    NormalLayer* normlayers;                                        //  Array of Normal Layers
+    unsigned int normalLen;                                         //  Length of that array
 
     Variable* variables;                                            //  Array of Network Variables
     unsigned char vars;                                             //  Length of that array
@@ -301,89 +124,37 @@ void printEdgeList(NeuralNet*);
 void print_NN(NeuralNet*);
 void printLayerName(unsigned char, unsigned int, NeuralNet*);
 
-unsigned int add_LSTM(unsigned int, unsigned int, unsigned int, NeuralNet*);
-void setWi_LSTM(double*, LSTMLayer*);                               //  Set entirety of Wi weight matrix
-void setWo_LSTM(double*, LSTMLayer*);                               //  Set entirety of Wo weight matrix
-void setWf_LSTM(double*, LSTMLayer*);                               //  Set entirety of Wf weight matrix
-void setWc_LSTM(double*, LSTMLayer*);                               //  Set entirety of Wc weight matrix
-void setWi_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Wi weight matrix
-void setWo_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Wo weight matrix
-void setWf_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Wf weight matrix
-void setWc_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Wc weight matrix
-void setUi_LSTM(double*, LSTMLayer*);                               //  Set entirety of Ui weight matrix
-void setUo_LSTM(double*, LSTMLayer*);                               //  Set entirety of Uo weight matrix
-void setUf_LSTM(double*, LSTMLayer*);                               //  Set entirety of Uf weight matrix
-void setUc_LSTM(double*, LSTMLayer*);                               //  Set entirety of Uc weight matrix
-void setUi_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Ui weight matrix
-void setUo_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Uo weight matrix
-void setUf_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Uf weight matrix
-void setUc_ij_LSTM(double, unsigned int, unsigned int, LSTMLayer*); //  Set element [i, j] of Uc weight matrix
-void setbi_LSTM(double*, LSTMLayer*);                               //  Set entirety of bi bias vector
-void setbo_LSTM(double*, LSTMLayer*);                               //  Set entirety of bo bias vector
-void setbf_LSTM(double*, LSTMLayer*);                               //  Set entirety of bf bias vector
-void setbc_LSTM(double*, LSTMLayer*);                               //  Set entirety of bc bias vector
-void setbi_i_LSTM(double, unsigned int, LSTMLayer*);                //  Set i-th element of bi bias vector
-void setbo_i_LSTM(double, unsigned int, LSTMLayer*);                //  Set i-th element of bo bias vector
-void setbf_i_LSTM(double, unsigned int, LSTMLayer*);                //  Set i-th element of bf bias vector
-void setbc_i_LSTM(double, unsigned int, LSTMLayer*);                //  Set i-th element of bc bias vector
-void setName_LSTM(char*, LSTMLayer*);
-void print_LSTM(LSTMLayer*);
-unsigned int outputLen_LSTM(LSTMLayer*);
-unsigned int run_LSTM(double*, LSTMLayer*);
-void reset_LSTM(LSTMLayer*);
-
-unsigned int add_GRU(unsigned int, unsigned int, unsigned int, NeuralNet*);
-void setWz_GRU(double*, GRULayer*);                                 //  Set entirety of Wz weight matrix
-void setWr_GRU(double*, GRULayer*);                                 //  Set entirety of Wr weight matrix
-void setWh_GRU(double*, GRULayer*);                                 //  Set entirety of Wh weight matrix
-void setWz_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Wz weight matrix
-void setWr_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Wr weight matrix
-void setWh_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Wh weight matrix
-void setUz_GRU(double*, GRULayer*);                                 //  Set entirety of Uz weight matrix
-void setUr_GRU(double*, GRULayer*);                                 //  Set entirety of Ur weight matrix
-void setUh_GRU(double*, GRULayer*);                                 //  Set entirety of Uh weight matrix
-void setUz_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Uz weight matrix
-void setUr_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Ur weight matrix
-void setUh_ij_GRU(double, unsigned int, unsigned int, GRULayer*);   //  Set element [i, j] of Uh weight matrix
-void setbz_GRU(double*, GRULayer*);                                 //  Set entirety of bz bias vector
-void setbr_GRU(double*, GRULayer*);                                 //  Set entirety of br bias vector
-void setbh_GRU(double*, GRULayer*);                                 //  Set entirety of bh bias vector
-void setbz_i_GRU(double, unsigned int, GRULayer*);                  //  Set i-th element of bz bias vector
-void setbr_i_GRU(double, unsigned int, GRULayer*);                  //  Set i-th element of br bias vector
-void setbh_i_GRU(double, unsigned int, GRULayer*);                  //  Set i-th element of bh bias vector
-void setName_GRU(char*, GRULayer*);
-void print_GRU(GRULayer*);
-unsigned int outputLen_GRU(GRULayer*);
-unsigned int run_GRU(double*, GRULayer*);
-void reset_GRU(GRULayer*);
+unsigned int add_Dense(unsigned int, unsigned int, NeuralNet*);
+bool read_Dense(DenseLayer*, unsigned int, FILE*);
+bool write_Dense(DenseLayer*, unsigned int, FILE*);
 
 unsigned int add_Conv2D(unsigned int, unsigned int, NeuralNet*);
-unsigned int add_Conv2DFilter(unsigned int, unsigned int, Conv2DLayer*);
-void setW_i_Conv2D(double*, unsigned int, Conv2DLayer*);             //  Set entirety of i-th filter; w is length width * height + 1
-void setW_ij_Conv2D(double, unsigned int, unsigned int, Conv2DLayer*);
-void setF_i_Conv2D(unsigned char, unsigned int, Conv2DLayer*);       //  Set activation function of i-th filter
-void setA_i_Conv2D(double, unsigned int, Conv2DLayer*);              //  Set activation function auxiliary parameter of i-th filter
-void setName_Conv2D(char*, Conv2DLayer*);
-void print_Conv2D(Conv2DLayer*);
-unsigned int outputLen_Conv2D(Conv2DLayer*);
-unsigned int run_Conv2D(double*, Conv2DLayer*);
+bool read_Conv2D(Conv2DLayer*, unsigned int, FILE*);
+bool write_Conv2D(Conv2DLayer*, unsigned int, FILE*);
 
 unsigned int add_Accum(unsigned int, NeuralNet*);
-void setName_Accum(char* n, AccumLayer*);
+bool read_Accum(AccumLayer*, unsigned int, FILE*);
+bool write_Accum(AccumLayer*, unsigned int, FILE*);
 
-unsigned int add_Dense(unsigned int, unsigned int, NeuralNet*);
-void setW_Dense(double*, DenseLayer*);                              //  Set entirety of layer's weight matrix
-void setW_i_Dense(double*, unsigned int, DenseLayer*);              //  Set entirety of weights for i-th column/neuron/unit
-void setW_ij_Dense(double, unsigned int, unsigned int, DenseLayer*);//  Set element [i, j] of layer's weight matrix
-void setM_Dense(bool*, DenseLayer*);                                //  Set entirety of layer's mask matrix
-void setM_i_Dense(bool*, unsigned int, DenseLayer*);                //  Set entirety of masks for i-th column/neuron/unit
-void setM_ij_Dense(bool, unsigned int, unsigned int, DenseLayer*);  //  Set element [i, j] of layer's mask matrix
-void setF_i_Dense(unsigned char, unsigned int, DenseLayer*);        //  Set activation function of i-th neuron/unit
-void setA_i_Dense(double, unsigned int, DenseLayer*);               //  Set activation function auxiliary parameter of i-th neuron/unit
-void setName_Dense(char* n, DenseLayer*);
-void print_Dense(DenseLayer*);
-unsigned int outputLen_Dense(DenseLayer*);
-unsigned int run_Dense(double*, DenseLayer*);
+unsigned int add_LSTM(unsigned int, unsigned int, unsigned int, NeuralNet*);
+bool read_LSTM(LSTMLayer*, unsigned int, FILE*);
+bool write_LSTM(LSTMLayer*, unsigned int, FILE*);
+
+unsigned int add_GRU(unsigned int, unsigned int, unsigned int, NeuralNet*);
+bool read_GRU(GRULayer*, unsigned int, FILE*);
+bool write_GRU(GRULayer*, unsigned int, FILE*);
+
+unsigned int add_Pool(unsigned int, unsigned int, NeuralNet*);
+bool read_Pool2D(Pool2DLayer*, unsigned int, FILE*);
+bool write_Pool2D(Pool2DLayer*, unsigned int, FILE*);
+
+unsigned int add_Upres(unsigned int, unsigned int, NeuralNet*);
+bool read_Upres(UpresLayer*, unsigned int, FILE*);
+bool write_Upres(UpresLayer*, unsigned int, FILE*);
+
+unsigned int add_Normal(unsigned int, NeuralNet*);
+bool read_Normal(NormalLayer*, unsigned int, FILE*);
+bool write_Normal(NormalLayer*, unsigned int, FILE*);
 
 /**************************************************************************************************
  Globals  */
@@ -413,6 +184,9 @@ bool init_NN(NeuralNet** nn, unsigned int inputs)
     (*nn)->accumLen = 0;                                            //  Initially zero AccumLayers
     (*nn)->lstmLen = 0;                                             //  Initially zero LSTMLayers
     (*nn)->gruLen = 0;                                              //  Initially zero GRULayers
+    (*nn)->poolLen = 0;                                             //  Initially zero Pool2DLayers
+    (*nn)->upresLen = 0;                                            //  Initially zero UpresLayers
+    (*nn)->normalLen = 0;                                           //  Initially zero NormalLayers
     (*nn)->vars = 0;                                                //  Initially zero variables
     (*nn)->gen = 0;                                                 //  Initialize generation to zero
     (*nn)->fit = 0.0;                                               //  Initialize fitness to zero
@@ -432,90 +206,125 @@ void free_NN(NeuralNet* nn)
         if(nn->len > 0)
           free(nn->edgelist);
 
-        if(nn->denseLen > 0)
+        if(nn->denseLen > 0)                                        //  Clean up Dense Layers array
           {
             for(i = 0; i < nn->denseLen; i++)
               {
-                free(nn->denselayers[i].W);
-                free(nn->denselayers[i].M);
-                free(nn->denselayers[i].f);
-                free(nn->denselayers[i].alpha);
-                free(nn->denselayers[i].out);
+                free(nn->denselayers[i].W);                         //  Free the weights matrix
+                free(nn->denselayers[i].M);                         //  Free the mask matrix
+                free(nn->denselayers[i].f);                         //  Free activation function flags array
+                free(nn->denselayers[i].alpha);                     //  Free activation parameters array
+                free(nn->denselayers[i].out);                       //  Free output buffer
               }
-            free(nn->denselayers);
+            free(nn->denselayers);                                  //  Release the layers array
           }
 
-        if(nn->convLen > 0)
+        if(nn->convLen > 0)                                         //  Clean up 2D-Convolutional Layers array
           {
-            for(i = 0; i < nn->convLen; i++)
+            for(i = 0; i < nn->convLen; i++)                        //  For each Conv2DLayer...
               {
                 if(nn->convlayers[i].n > 0)
                   {
-                    for(j = 0; j < nn->convlayers[i].n; j++)
-                      free(nn->convlayers[i].filters[j].W);
-                    free(nn->convlayers[i].filters);
+                    for(j = 0; j < nn->convlayers[i].n; j++)        //  For each Filter2D...
+                      free(nn->convlayers[i].filters[j].W);         //  Free filter weights
+                    if(nn->convlayers[i].outlen > 0)
+                      free(nn->convlayers[i].out);                  //  Free output buffer
+                    free(nn->convlayers[i].filters);                //  Free Filter2D array
                   }
               }
-            free(nn->convlayers);
+            free(nn->convlayers);                                   //  Release the layers array
           }
 
-        if(nn->accumLen > 0)
+        if(nn->accumLen > 0)                                        //  Clean up Accumulator Layers array
           {
             for(i = 0; i < nn->accumLen; i++)
-              free(nn->accumlayers[i].out);
-            free(nn->accumlayers);
+              free(nn->accumlayers[i].out);                         //  Free output buffer
+            free(nn->accumlayers);                                  //  Release the layers array
           }
 
-        if(nn->lstmLen > 0)
+        if(nn->lstmLen > 0)                                         //  Clean up LSTM Layers array
           {
-            for(i = 0; i < nn->lstmLen; i++)
+            for(i = 0; i < nn->lstmLen; i++)                        //  For each layer
               {
-                free(nn->lstmlayers[i].Wi);
-                free(nn->lstmlayers[i].Wo);
-                free(nn->lstmlayers[i].Wf);
-                free(nn->lstmlayers[i].Wc);
+                free(nn->lstmlayers[i].Wi);                         //  Free the Wi matrix
+                free(nn->lstmlayers[i].Wo);                         //  Free the Wo matrix
+                free(nn->lstmlayers[i].Wf);                         //  Free the Wf matrix
+                free(nn->lstmlayers[i].Wc);                         //  Free the Wc matrix
 
-                free(nn->lstmlayers[i].Ui);
-                free(nn->lstmlayers[i].Uo);
-                free(nn->lstmlayers[i].Uf);
-                free(nn->lstmlayers[i].Uc);
+                free(nn->lstmlayers[i].Ui);                         //  Free the Ui matrix
+                free(nn->lstmlayers[i].Uo);                         //  Free the Uo matrix
+                free(nn->lstmlayers[i].Uf);                         //  Free the Uf matrix
+                free(nn->lstmlayers[i].Uc);                         //  Free the Uc matrix
 
-                free(nn->lstmlayers[i].bi);
-                free(nn->lstmlayers[i].bo);
-                free(nn->lstmlayers[i].bf);
-                free(nn->lstmlayers[i].bc);
+                free(nn->lstmlayers[i].bi);                         //  Free the bi vector
+                free(nn->lstmlayers[i].bo);                         //  Free the bo vector
+                free(nn->lstmlayers[i].bf);                         //  Free the bf vector
+                free(nn->lstmlayers[i].bc);                         //  Free the bc vector
 
-                free(nn->lstmlayers[i].c);
-                free(nn->lstmlayers[i].H);
+                free(nn->lstmlayers[i].c);                          //  Free the c vector
+                free(nn->lstmlayers[i].H);                          //  Free the H cache
               }
-            free(nn->lstmlayers);
+            free(nn->lstmlayers);                                   //  Release the layers array
           }
 
-        if(nn->gruLen > 0)
+        if(nn->gruLen > 0)                                          //  Clean up GRU Layers array
           {
-            for(i = 0; i < nn->gruLen; i++)
+            for(i = 0; i < nn->gruLen; i++)                         //  For each layer
               {
-                free(nn->grulayers[i].Wz);
-                free(nn->grulayers[i].Wr);
-                free(nn->grulayers[i].Wh);
+                free(nn->grulayers[i].Wz);                          //  Free the Wz matrix
+                free(nn->grulayers[i].Wr);                          //  Free the Wr matrix
+                free(nn->grulayers[i].Wh);                          //  Free the Wh matrix
 
-                free(nn->grulayers[i].Uz);
-                free(nn->grulayers[i].Ur);
-                free(nn->grulayers[i].Uh);
+                free(nn->grulayers[i].Uz);                          //  Free the Uz matrix
+                free(nn->grulayers[i].Ur);                          //  Free the Ur matrix
+                free(nn->grulayers[i].Uh);                          //  Free the Uh matrix
 
-                free(nn->grulayers[i].bz);
-                free(nn->grulayers[i].br);
-                free(nn->grulayers[i].bh);
+                free(nn->grulayers[i].bz);                          //  Free the bz vector
+                free(nn->grulayers[i].br);                          //  Free the br vector
+                free(nn->grulayers[i].bh);                          //  Free the bh vector
 
-                free(nn->grulayers[i].H);
+                free(nn->grulayers[i].H);                           //  Free the H cache
               }
-            free(nn->grulayers);
+            free(nn->grulayers);                                    //  Release the layers array
           }
 
-        if(nn->vars > 0)
+        if(nn->poolLen > 0)                                         //  Clean up Pooling Layers array
+          {
+            for(i = 0; i < nn->poolLen; i++)                        //  For each layer
+              {
+                if(nn->poollayers[i].n > 0)
+                  {
+                    free(nn->poollayers[i].pools);                  //  Free Pool2D array
+                    free(nn->poollayers[i].out);                    //  Free the output array
+                  }
+              }
+            free(nn->poollayers);                                   //  Release the layers array
+          }
+
+        if(nn->upresLen > 0)                                        //  Clean up Upres Layers array
+          {
+            for(i = 0; i < nn->upresLen; i++)                       //  For each layer
+              {
+                if(nn->upreslayers[i].n > 0)
+                  {
+                    free(nn->upreslayers[i].params);                //  Free the Upres Parameters array
+                    free(nn->upreslayers[i].out);                   //  Free the output buffer
+                  }
+              }
+            free(nn->upreslayers);                                  //  Release the layers array
+          }
+
+        if(nn->normalLen > 0)                                       //  Clean up Normalization Layers array
+          {
+            for(i = 0; i < nn->normalLen; i++)
+              free(nn->normlayers[i].out);                          //  Free the output buffer
+            free(nn->normlayers);                                   //  Release the layers array
+          }
+
+        if(nn->vars > 0)                                            //  Clean up Variables
           free(nn->variables);
 
-        free(nn);
+        free(nn);                                                   //  Finally, release the Neural Network pointer
       }
 
     return;
@@ -543,17 +352,25 @@ unsigned int run_NN(double* x, NeuralNet* nn, double** z)
                                                                     //  size of the current destination layer.
         switch(nn->edgelist[i].dstType)                             //  Which array contains the destination layer?
           {
-            case DENSE_ARRAY:  inLen = nn->denselayers[nn->edgelist[i].dstIndex].i;
-                               break;
-            case CONV2D_ARRAY: inLen = nn->convlayers[nn->edgelist[i].dstIndex].inputW *
-                                       nn->convlayers[nn->edgelist[i].dstIndex].inputH;
-                               break;
-            case ACCUM_ARRAY:  inLen = nn->accumlayers[nn->edgelist[i].dstIndex].i;
-                               break;
-            case LSTM_ARRAY:   inLen = nn->lstmlayers[nn->edgelist[i].dstIndex].d;
-                               break;
-            case GRU_ARRAY:    inLen = nn->grulayers[nn->edgelist[i].dstIndex].d;
-                               break;
+            case DENSE_ARRAY:   inLen = nn->denselayers[nn->edgelist[i].dstIndex].i;
+                                break;
+            case CONV2D_ARRAY:  inLen = nn->convlayers[nn->edgelist[i].dstIndex].inputW *
+                                        nn->convlayers[nn->edgelist[i].dstIndex].inputH;
+                                break;
+            case ACCUM_ARRAY:   inLen = nn->accumlayers[nn->edgelist[i].dstIndex].i;
+                                break;
+            case LSTM_ARRAY:    inLen = nn->lstmlayers[nn->edgelist[i].dstIndex].d;
+                                break;
+            case GRU_ARRAY:     inLen = nn->grulayers[nn->edgelist[i].dstIndex].d;
+                                break;
+            case POOL_ARRAY:    inLen = nn->poollayers[nn->edgelist[i].dstIndex].inputW *
+                                        nn->poollayers[nn->edgelist[i].dstIndex].inputH;
+                                break;
+            case UPRES_ARRAY:   inLen = nn->upreslayers[nn->edgelist[i].dstIndex].inputW *
+                                        nn->upreslayers[nn->edgelist[i].dstIndex].inputH;
+                                break;
+            case NORMAL_ARRAY:  inLen = nn->normlayers[nn->edgelist[i].dstIndex].i;
+                                break;
           }
 
         if((in = (double*)malloc(inLen * sizeof(double))) == NULL)  //  Allocate the vector
@@ -621,27 +438,54 @@ unsigned int run_NN(double* x, NeuralNet* nn, double** z)
                                            k++;
                                          }
                                        break;
+                case POOL_ARRAY:                                    //  Receiving from a pooling layer
+                                       for(l = nn->edgelist[j].selectorStart; l < nn->edgelist[j].selectorEnd; l++)
+                                         {
+                                           in[k] = nn->poollayers[nn->edgelist[j].srcIndex].out[l];
+                                           k++;
+                                         }
+                                       break;
+                case UPRES_ARRAY:                                   //  Receiving from an upres layer
+                                       for(l = nn->edgelist[j].selectorStart; l < nn->edgelist[j].selectorEnd; l++)
+                                         {
+                                           in[k] = nn->upreslayers[nn->edgelist[j].srcIndex].out[l];
+                                           k++;
+                                         }
+                                       break;
+                case NORMAL_ARRAY:                                  //  Receiving from a normalization layer
+                                       for(l = nn->edgelist[j].selectorStart; l < nn->edgelist[j].selectorEnd; l++)
+                                         {
+                                           in[k] = nn->normlayers[nn->edgelist[j].srcIndex].out[l];
+                                           k++;
+                                         }
+                                       break;
               }
             j++;
           }
 
         switch(nn->edgelist[i].dstType)                             //  Which array contains the destination layer?
           {
-            case DENSE_ARRAY:  outLen = run_Dense(in, nn->denselayers + nn->edgelist[i].dstIndex);
-                               break;
-            case CONV2D_ARRAY: outLen = run_Conv2D(in, nn->convlayers + nn->edgelist[i].dstIndex);
-                               break;
-            case ACCUM_ARRAY:  outLen = inLen;
-                               #ifdef __NEURON_DEBUG
-                               printf("run_Accum()\n");
-                               #endif
-                               for(k = 0; k < inLen; k++)
-                                 nn->accumlayers[nn->edgelist[i].dstIndex].out[k] = in[k];
-                               break;
-            case LSTM_ARRAY:   outLen = run_LSTM(in, nn->lstmlayers + nn->edgelist[i].dstIndex);
-                               break;
-            case GRU_ARRAY:    outLen = run_GRU(in, nn->grulayers + nn->edgelist[i].dstIndex);
-                               break;
+            case DENSE_ARRAY:   outLen = run_Dense(in, nn->denselayers + nn->edgelist[i].dstIndex);
+                                break;
+            case CONV2D_ARRAY:  outLen = run_Conv2D(in, nn->convlayers + nn->edgelist[i].dstIndex);
+                                break;
+            case ACCUM_ARRAY:   outLen = inLen;
+                                #ifdef __NEURON_DEBUG
+                                printf("run_Accum()\n");
+                                #endif
+                                for(k = 0; k < inLen; k++)
+                                  nn->accumlayers[nn->edgelist[i].dstIndex].out[k] = in[k];
+                                break;
+            case LSTM_ARRAY:    outLen = run_LSTM(in, nn->lstmlayers + nn->edgelist[i].dstIndex);
+                                break;
+            case GRU_ARRAY:     outLen = run_GRU(in, nn->grulayers + nn->edgelist[i].dstIndex);
+                                break;
+            case POOL_ARRAY:    outLen = run_Pool2D(in, nn->poollayers + nn->edgelist[i].dstIndex);
+                                break;
+            case UPRES_ARRAY:   outLen = run_Upres(in, nn->upreslayers + nn->edgelist[i].dstIndex);
+                                break;
+            case NORMAL_ARRAY:  outLen = run_Normal(in, nn->normlayers + nn->edgelist[i].dstIndex);
+                                break;
           }
 
         free(in);                                                   //  Release input vector
@@ -657,29 +501,38 @@ unsigned int run_NN(double* x, NeuralNet* nn, double** z)
       }
     switch(nn->edgelist[last].dstType)
       {
-        case DENSE_ARRAY:  for(i = 0; i < outLen; i++)
-                             (*z)[i] = nn->denselayers[nn->edgelist[last].dstIndex].out[i];
-                           break;
-        case CONV2D_ARRAY: for(i = 0; i < outLen; i++)
-                             (*z)[i] = nn->convlayers[nn->edgelist[last].dstIndex].out[i];
-                           break;
-        case ACCUM_ARRAY:  for(i = 0; i < outLen; i++)
-                             (*z)[i] = nn->accumlayers[nn->edgelist[last].dstIndex].out[i];
-                           break;
-        case LSTM_ARRAY:   if(nn->lstmlayers[nn->edgelist[last].dstIndex].t >= nn->lstmlayers[nn->edgelist[last].dstIndex].cache)
-                             t = nn->lstmlayers[nn->edgelist[last].dstIndex].cache - 1;
-                           else
-                             t = nn->lstmlayers[nn->edgelist[last].dstIndex].t - 1;
-                           for(i = 0; i < outLen; i++)
-                             (*z)[i] = nn->lstmlayers[nn->edgelist[last].dstIndex].H[t * nn->lstmlayers[nn->edgelist[last].dstIndex].h + i];
-                           break;
-        case GRU_ARRAY:    if(nn->grulayers[nn->edgelist[last].dstIndex].t >= nn->grulayers[nn->edgelist[last].dstIndex].cache)
-                             t = nn->grulayers[nn->edgelist[last].dstIndex].cache - 1;
-                           else
-                             t = nn->grulayers[nn->edgelist[last].dstIndex].t - 1;
-                           for(i = 0; i < outLen; i++)
-                             (*z)[i] = nn->grulayers[nn->edgelist[last].dstIndex].H[t * nn->grulayers[nn->edgelist[last].dstIndex].h + i];
-                           break;
+        case DENSE_ARRAY:   for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->denselayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
+        case CONV2D_ARRAY:  for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->convlayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
+        case ACCUM_ARRAY:   for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->accumlayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
+        case LSTM_ARRAY:    if(nn->lstmlayers[nn->edgelist[last].dstIndex].t >= nn->lstmlayers[nn->edgelist[last].dstIndex].cache)
+                              t = nn->lstmlayers[nn->edgelist[last].dstIndex].cache - 1;
+                            else
+                              t = nn->lstmlayers[nn->edgelist[last].dstIndex].t - 1;
+                            for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->lstmlayers[nn->edgelist[last].dstIndex].H[t * nn->lstmlayers[nn->edgelist[last].dstIndex].h + i];
+                            break;
+        case GRU_ARRAY:     if(nn->grulayers[nn->edgelist[last].dstIndex].t >= nn->grulayers[nn->edgelist[last].dstIndex].cache)
+                              t = nn->grulayers[nn->edgelist[last].dstIndex].cache - 1;
+                            else
+                              t = nn->grulayers[nn->edgelist[last].dstIndex].t - 1;
+                            for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->grulayers[nn->edgelist[last].dstIndex].H[t * nn->grulayers[nn->edgelist[last].dstIndex].h + i];
+                            break;
+        case POOL_ARRAY:    for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->poollayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
+        case UPRES_ARRAY:   for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->upreslayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
+        case NORMAL_ARRAY:  for(i = 0; i < outLen; i++)
+                              (*z)[i] = nn->normlayers[nn->edgelist[last].dstIndex].out[i];
+                            break;
       }
 
     return outLen;
@@ -711,21 +564,27 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
     printf("linkLayers(");
     switch(srcFlag)
       {
-        case INPUT_ARRAY:  printf("Input, ");  break;
-        case DENSE_ARRAY:  printf("Dense, ");  break;
-        case CONV2D_ARRAY: printf("Conv2D, "); break;
-        case ACCUM_ARRAY:  printf("Accum, ");  break;
-        case LSTM_ARRAY:   printf("LSTM, ");  break;
-        case GRU_ARRAY:    printf("GRU, ");  break;
+        case INPUT_ARRAY:   printf("Input, ");  break;
+        case DENSE_ARRAY:   printf("Dense, ");  break;
+        case CONV2D_ARRAY:  printf("Conv2D, "); break;
+        case ACCUM_ARRAY:   printf("Accum, ");  break;
+        case LSTM_ARRAY:    printf("LSTM, ");  break;
+        case GRU_ARRAY:     printf("GRU, ");  break;
+        case POOL_ARRAY:    printf("Pool, ");  break;
+        case UPRES_ARRAY:   printf("Upres, ");  break;
+        case NORMAL_ARRAY:  printf("Normal, ");  break;
       }
     printf("%d, %d, %d, ", src, selectorStart, selectorEnd);
     switch(dstFlag)
       {
-        case DENSE_ARRAY:  printf("Dense, ");  break;
-        case CONV2D_ARRAY: printf("Conv2D, "); break;
-        case ACCUM_ARRAY:  printf("Accum, ");  break;
-        case LSTM_ARRAY:   printf("LSTM, ");  break;
-        case GRU_ARRAY:    printf("GRU, ");  break;
+        case DENSE_ARRAY:   printf("Dense, ");  break;
+        case CONV2D_ARRAY:  printf("Conv2D, "); break;
+        case ACCUM_ARRAY:   printf("Accum, ");  break;
+        case LSTM_ARRAY:    printf("LSTM, ");  break;
+        case GRU_ARRAY:     printf("GRU, ");  break;
+        case POOL_ARRAY:    printf("Pool, ");  break;
+        case UPRES_ARRAY:   printf("Upres, ");  break;
+        case NORMAL_ARRAY:  printf("Normal, ");  break;
       }
     printf("%d)\n", dst);
     #endif
@@ -765,6 +624,27 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         #endif
         return false;
       }
+    if(srcFlag == POOL_ARRAY && src >= nn->poolLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given source is out of bounds for pooling layers.\n");
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && src >= nn->upresLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given source is out of bounds for upres layers.\n");
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && src >= nn->normalLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given source is out of bounds for normalization layers.\n");
+        #endif
+        return false;
+      }
 
     if(dstFlag == DENSE_ARRAY && dst >= nn->denseLen)
       {
@@ -798,6 +678,27 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because the given destination is out of bounds for GRU layers.\n");
+        #endif
+        return false;
+      }
+    if(dstFlag == POOL_ARRAY && dst >= nn->poolLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given destination is out of bounds for pooling layers.\n");
+        #endif
+        return false;
+      }
+    if(dstFlag == UPRES_ARRAY && dst >= nn->upresLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given destination is out of bounds for upres layers.\n");
+        #endif
+        return false;
+      }
+    if(dstFlag == NORMAL_ARRAY && dst >= nn->normalLen)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given destination is out of bounds for normalization layers.\n");
         #endif
         return false;
       }
@@ -837,6 +738,27 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         #endif
         return false;
       }
+    if(srcFlag == POOL_ARRAY && selectorStart >= outputLen_Pool2D(nn->poollayers + src))
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection start is out of bounds for pooling layer %d.\n", src);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && selectorStart >= outputLen_Upres(nn->upreslayers + src))
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection start is out of bounds for upres layer %d.\n", src);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && selectorStart >= nn->normlayers[src].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection start is out of bounds for normalization layer %d.\n", src);
+        #endif
+        return false;
+      }
 
     if(srcFlag == DENSE_ARRAY && selectorEnd > nn->denselayers[src].n)
       {
@@ -873,6 +795,27 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         #endif
         return false;
       }
+    if(srcFlag == POOL_ARRAY && selectorEnd > outputLen_Pool2D(nn->poollayers + src))
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection end is out of bounds for pooling layer %d.\n", src);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && selectorEnd > outputLen_Upres(nn->upreslayers + src))
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection end is out of bounds for upres layer %d.\n", src);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && selectorEnd > nn->normlayers[src].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because the given selection end is out of bounds for normalization layer %d.\n", src);
+        #endif
+        return false;
+      }
 
     if(selectorEnd < selectorStart)
       {
@@ -902,7 +845,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
        outputLen_Dense(nn->denselayers + src) > nn->accumlayers[dst].i)
       {
         #ifdef __NEURON_DEBUG
-        printf("Edge rejected because output from dense layer %d does not match input for accumulator layer %d.\n", src, dst);
+        printf("Edge rejected because output from dense layer %d exceeds input for accumulator layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -919,6 +862,30 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from dense layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == DENSE_ARRAY && dstFlag == POOL_ARRAY &&           //  Dense-->Pool
+       outputLen_Dense(nn->denselayers + src) != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from dense layer %d does not match input for pooling layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == DENSE_ARRAY && dstFlag == UPRES_ARRAY &&          //  Dense-->Upres
+       outputLen_Dense(nn->denselayers + src) != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from dense layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == DENSE_ARRAY && dstFlag == NORMAL_ARRAY &&         //  Dense-->Normalization
+       outputLen_Dense(nn->denselayers + src) != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from dense layer %d does not match input for normalization layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -943,7 +910,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
        outputLen_Conv2D(nn->convlayers + src) > nn->accumlayers[dst].i)
       {
         #ifdef __NEURON_DEBUG
-        printf("Edge rejected because output from convolutional layer %d does not match input for accumulator layer %d.\n", src, dst);
+        printf("Edge rejected because output from convolutional layer %d exceeds input for accumulator layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -960,6 +927,30 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from convolutional layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == CONV2D_ARRAY && dstFlag == POOL_ARRAY &&          //  Conv2D-->Pool
+       outputLen_Conv2D(nn->convlayers + src) != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from convolutional layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == CONV2D_ARRAY && dstFlag == UPRES_ARRAY &&         //  Conv2D-->Upres
+       outputLen_Conv2D(nn->convlayers + src) != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from convolutional layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == CONV2D_ARRAY && dstFlag == NORMAL_ARRAY &&        //  Conv2D-->Normalization
+       outputLen_Conv2D(nn->convlayers + src) != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from convolutional layer %d does not match input for normalization layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -984,7 +975,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
        nn->accumlayers[src].i > nn->accumlayers[dst].i)             //  Incoming layer free to be < Accumulator size
       {
         #ifdef __NEURON_DEBUG
-        printf("Edge rejected because output from accumulator layer %d does not match input for accumulator layer %d.\n", src, dst);
+        printf("Edge rejected because output from accumulator layer %d exceeds input for accumulator layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1001,6 +992,30 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from accumulator layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == ACCUM_ARRAY && dstFlag == POOL_ARRAY &&           //  Accumulator-->Pool
+       nn->accumlayers[src].i != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from accumulator layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == ACCUM_ARRAY && dstFlag == UPRES_ARRAY &&          //  Accumulator-->Upres
+       nn->accumlayers[src].i != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from accumulator layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == ACCUM_ARRAY && dstFlag == NORMAL_ARRAY &&         //  Accumulator-->Normalization
+       nn->accumlayers[src].i != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected bcause output from accumulator layer %d does not match input for normalization layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1025,7 +1040,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
        nn->lstmlayers[src].h > nn->accumlayers[dst].i)              //  Incoming layer free to be < Accumulator size
       {
         #ifdef __NEURON_DEBUG
-        printf("Edge rejected because output from LSTM layer %d does not match input for accumulator layer %d.\n", src, dst);
+        printf("Edge rejected because output from LSTM layer %d exceeds input for accumulator layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1042,6 +1057,30 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from LSTM layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == LSTM_ARRAY && dstFlag == POOL_ARRAY &&            //  LSTM-->Pool
+       nn->lstmlayers[src].h != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from LSTM layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == LSTM_ARRAY && dstFlag == UPRES_ARRAY &&           //  LSTM-->Upres
+       nn->lstmlayers[src].h != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from LSTM layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == LSTM_ARRAY && dstFlag == NORMAL_ARRAY &&          //  LSTM-->Normalization
+       nn->lstmlayers[src].h != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from LSTM layer %d does not match input for normalization layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1066,7 +1105,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
        nn->grulayers[src].h > nn->accumlayers[dst].i)               //  Incoming layer free to be < Accumulator size
       {
         #ifdef __NEURON_DEBUG
-        printf("Edge rejected because output from GRU layer %d does not match input for accumulator layer %d.\n", src, dst);
+        printf("Edge rejected because output from GRU layer %d exceeds input for accumulator layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1083,6 +1122,227 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from GRU layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == GRU_ARRAY && dstFlag == POOL_ARRAY &&             //  GRU-->Pool
+       nn->grulayers[src].h != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from GRU layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == GRU_ARRAY && dstFlag == UPRES_ARRAY &&            //  GRU-->Upres
+       nn->grulayers[src].h != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from GRU layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == GRU_ARRAY && dstFlag == NORMAL_ARRAY &&           //  GRU-->Normalization
+       nn->grulayers[src].h != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from GRU layer %d does not match input for normalization layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+
+    if(srcFlag == POOL_ARRAY && dstFlag == DENSE_ARRAY &&           //  Pool-->Dense
+       outputLen_Pool2D(nn->poollayers + src) != nn->denselayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for dense layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == CONV2D_ARRAY &&          //  Pool-->Conv2D
+       outputLen_Pool2D(nn->poollayers + src) != nn->convlayers[dst].inputW * nn->convlayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for convolutional layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == ACCUM_ARRAY &&           //  Pool-->Accumulator
+                                                                    //  Incoming layer free to be < Accumulator size
+       outputLen_Pool2D(nn->poollayers + src) > nn->accumlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d exceeds input for accumulator layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == LSTM_ARRAY &&            //  Pool-->LSTM
+       outputLen_Pool2D(nn->poollayers + src) != nn->lstmlayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for LSTM layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == GRU_ARRAY &&             //  Pool-->GRU
+       outputLen_Pool2D(nn->poollayers + src) != nn->grulayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == POOL_ARRAY &&            //  Pool-->Pool
+       outputLen_Pool2D(nn->poollayers + src) != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == UPRES_ARRAY &&           //  Pool-->Upres
+       outputLen_Pool2D(nn->poollayers + src) != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == POOL_ARRAY && dstFlag == NORMAL_ARRAY &&          //  Pool-->Normalization
+       outputLen_Pool2D(nn->poollayers + src) != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from pool layer %d does not match input for normalization layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+
+    if(srcFlag == UPRES_ARRAY && dstFlag == DENSE_ARRAY &&          //  Upres-->Dense
+       outputLen_Upres(nn->upreslayers + src) != nn->denselayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for dense layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == CONV2D_ARRAY &&         //  Upres-->Conv2D
+       outputLen_Upres(nn->upreslayers + src) != nn->convlayers[dst].inputW * nn->convlayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for convolutional layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == ACCUM_ARRAY &&          //  Upres-->Accumulator
+                                                                    //  Incoming layer free to be < Accumulator size
+       outputLen_Upres(nn->upreslayers + src) > nn->accumlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d exceeds input for accumulator layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == LSTM_ARRAY &&           //  Upres-->LSTM
+       outputLen_Upres(nn->upreslayers + src) != nn->lstmlayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for LSTM layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == GRU_ARRAY &&            //  Upres-->GRU
+       outputLen_Upres(nn->upreslayers + src) != nn->grulayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == POOL_ARRAY &&           //  Upres-->Pool
+       outputLen_Upres(nn->upreslayers + src) != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == UPRES_ARRAY &&          //  Upres-->Upres
+       outputLen_Upres(nn->upreslayers + src) != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == UPRES_ARRAY && dstFlag == NORMAL_ARRAY &&         //  Upres-->Normalization
+       outputLen_Upres(nn->upreslayers + src) != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from upres layer %d does not match input for normalization layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+
+    if(srcFlag == NORMAL_ARRAY && dstFlag == DENSE_ARRAY &&         //  Normalization-->Dense
+       nn->normlayers[src].i != nn->denselayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for dense layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == CONV2D_ARRAY &&        //  Normalization-->Conv2D
+       nn->normlayers[src].i != nn->convlayers[dst].inputW * nn->convlayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for convolutional layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == ACCUM_ARRAY &&         //  Normalization-->Accumulator
+       nn->normlayers[src].i > nn->accumlayers[dst].i)              //  Incoming layer free to be < Accumulator size
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d exceeds input for accumulator layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == LSTM_ARRAY &&          //  Normalization-->LSTM
+       nn->normlayers[src].i != nn->lstmlayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for LSTM layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == GRU_ARRAY &&           //  Normalization-->GRU
+       nn->normlayers[src].i != nn->grulayers[dst].d)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for GRU layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == POOL_ARRAY &&          //  Normalization-->Pool
+       nn->normlayers[src].i != nn->poollayers[dst].inputW * nn->poollayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for pool layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == UPRES_ARRAY &&         //  Normalization-->Upres
+       nn->normlayers[src].i != nn->upreslayers[dst].inputW * nn->upreslayers[dst].inputH)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for upres layer %d.\n", src, dst);
+        #endif
+        return false;
+      }
+    if(srcFlag == NORMAL_ARRAY && dstFlag == NORMAL_ARRAY &&        //  Normalization-->Normalization
+       nn->normlayers[src].i != nn->normlayers[dst].i)
+      {
+        #ifdef __NEURON_DEBUG
+        printf("Edge rejected because output from normalization layer %d does not match input for normalization layer %d.\n", src, dst);
         #endif
         return false;
       }
@@ -1287,11 +1547,9 @@ bool load_NN(char* filename, NeuralNet* nn)
   {
     FILE* fp;
     unsigned char* ucharBuffer;
-    bool* boolBuffer = NULL;
     unsigned int* uintBuffer;
     double* doubleBuffer;
-    unsigned int len;
-    unsigned int i, j, k;
+    unsigned int i, j;
 
     #ifdef __NEURON_DEBUG
     printf("load_NN(%s)\n", filename);
@@ -1304,8 +1562,8 @@ bool load_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
         exit(1);
       }
-                                                                    //  Allocate 7 uints
-    if((uintBuffer = (unsigned int*)malloc(7 * sizeof(int))) == NULL)
+                                                                    //  Allocate 10 uints
+    if((uintBuffer = (unsigned int*)malloc(10 * sizeof(int))) == NULL)
       {
         printf("ERROR: Unable to allocate unsigned int buffer for reading from file\n");
         exit(1);
@@ -1315,8 +1573,11 @@ bool load_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to allocate double buffer for reading from file\n");
         exit(1);
       }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
 
-    if(fread(uintBuffer, sizeof(int), 7, fp) != 7)                  //  Read 7 objects of size int into buffer
+    if(fread(uintBuffer, sizeof(int), 10, fp) != 10)                //  Read 10 objects of size int into buffer
       {
         printf("ERROR: Unable to read network parameters into buffer\n");
         exit(1);
@@ -1328,15 +1589,20 @@ bool load_NN(char* filename, NeuralNet* nn)
     nn->accumLen = uintBuffer[4];                                   //  Read NeuralNet AccumLayer list length from buffer
     nn->lstmLen = uintBuffer[5];                                    //  Read NeuralNet LSTMLayer list length from buffer
     nn->gruLen = uintBuffer[6];                                     //  Read NeuralNet GRULayer list length from buffer
-
+    nn->poolLen = uintBuffer[7];                                    //  Read NeuralNet Pool2DLayer list length from buffer
+    nn->upresLen = uintBuffer[8];                                   //  Read NeuralNet UpresLayer list length from buffer
+    nn->normalLen = uintBuffer[9];                                  //  Read NeuralNet NormalLayer list length from buffer
     #ifdef __NEURON_DEBUG
-    printf("  nn->i        = %d\n", nn->i);
-    printf("  nn->len      = %d\n", nn->len);
-    printf("  nn->denseLen = %d\n", nn->denseLen);
-    printf("  nn->convLen  = %d\n", nn->convLen);
-    printf("  nn->accumLen = %d\n", nn->accumLen);
-    printf("  nn->lstmLen  = %d\n", nn->lstmLen);
-    printf("  nn->gruLen   = %d\n", nn->gruLen);
+    printf("  nn->i         = %d\n", nn->i);
+    printf("  nn->len       = %d\n", nn->len);
+    printf("  nn->denseLen  = %d\n", nn->denseLen);
+    printf("  nn->convLen   = %d\n", nn->convLen);
+    printf("  nn->accumLen  = %d\n", nn->accumLen);
+    printf("  nn->lstmLen   = %d\n", nn->lstmLen);
+    printf("  nn->gruLen    = %d\n", nn->gruLen);
+    printf("  nn->poolLen   = %d\n", nn->poolLen);
+    printf("  nn->upresLen  = %d\n", nn->upresLen);
+    printf("  nn->normalLen = %d\n", nn->normalLen);
     #endif
 
     if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)                //  Read 1 object of size char into buffer
@@ -1345,7 +1611,6 @@ bool load_NN(char* filename, NeuralNet* nn)
         exit(1);
       }
     nn->vars = ucharBuffer[0];                                      //  Read NeuralNet variable count from buffer
-
     #ifdef __NEURON_DEBUG
     printf("  nn->vars     = %d\n", nn->vars);
     #endif
@@ -1356,7 +1621,6 @@ bool load_NN(char* filename, NeuralNet* nn)
         exit(1);
       }
     nn->gen = uintBuffer[0];                                        //  Read NeuralNet generation/epoch from buffer
-
     #ifdef __NEURON_DEBUG
     printf("  nn->gen      = %d\n", nn->gen);
     #endif
@@ -1367,7 +1631,6 @@ bool load_NN(char* filename, NeuralNet* nn)
         exit(1);
       }
     nn->fit = doubleBuffer[0];                                      //  Read NeuralNet fitness from buffer
-
     #ifdef __NEURON_DEBUG
     printf("  nn->fit      = %.6f\n", nn->fit);
     #endif
@@ -1377,6 +1640,10 @@ bool load_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
         exit(1);
       }
+                                                                    //  ucharBuffer  --> COMMSTR_LEN
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
+
                                                                     //  Read COMMSTR_LEN objects of size char into buffer
     if(fread(ucharBuffer, sizeof(char), COMMSTR_LEN, fp) != COMMSTR_LEN)
       {
@@ -1385,9 +1652,8 @@ bool load_NN(char* filename, NeuralNet* nn)
       }
     for(i = 0; i < COMMSTR_LEN; i++)                                //  Read NeuralNet comment from buffer
       nn->comment[i] = ucharBuffer[i];
-
     #ifdef __NEURON_DEBUG
-    printf("  nn->comment  = %s\n  Edge List:\n", nn->comment);
+    printf("  nn->comment  = %s\n", nn->comment);
     #endif
                                                                     //  Allocate network's edge list
     if((nn->edgelist = (Edge*)malloc(nn->len * sizeof(Edge))) == NULL)
@@ -1400,6 +1666,12 @@ bool load_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
         exit(1);
       }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
+    #ifdef __NEURON_DEBUG
+    printf("  Edge List:\n");
+    #endif
     for(i = 0; i < nn->len; i++)                                    //  Read all Edges from file
       {
         if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)            //  Read 1 object of size char into buffer
@@ -1430,17 +1702,18 @@ bool load_NN(char* filename, NeuralNet* nn)
         nn->edgelist[i].dstIndex = uintBuffer[0];                   //  Read edge destination index from buffer
 
         #ifdef __NEURON_DEBUG
-        printf("    (%d, %d, %d, %d, %d, %d)\n", nn->edgelist[i].srcType,
-                                                 nn->edgelist[i].srcIndex,
-                                                 nn->edgelist[i].selectorStart,
-                                                 nn->edgelist[i].selectorEnd,
-                                                 nn->edgelist[i].dstType,
-                                                 nn->edgelist[i].dstIndex);
+        printf("    (%d, %d, %d, %d, %d, %d)\n", nn->edgelist[i].srcType,       nn->edgelist[i].srcIndex,
+                                                 nn->edgelist[i].selectorStart, nn->edgelist[i].selectorEnd,
+                                                 nn->edgelist[i].dstType,       nn->edgelist[i].dstIndex);
         #endif
       }
     #ifdef __NEURON_DEBUG
     printf("\n");
     #endif
+
+    free(ucharBuffer);                                              //  ucharBuffer  --> 0
+    free(uintBuffer);                                               //  uintBuffer   --> 0
+    free(doubleBuffer);                                             //  doubleBuffer --> 0
 
     if(nn->denseLen > 0)
       {
@@ -1450,151 +1723,11 @@ bool load_NN(char* filename, NeuralNet* nn)
             printf("ERROR: Unable to allocate DenseLayer array while reading from file\n");
             exit(1);
           }
-        for(i = 0; i < nn->denseLen; i++)
+        if(!read_Dense(nn->denselayers, nn->denseLen, fp))
           {
-            if(fread(uintBuffer, sizeof(int), 2, fp) != 2)          //  Read 2 objects of size int into buffer
-              {
-                printf("ERROR: Unable to read Dense Layer parameters into buffer\n");
-                exit(1);
-              }
-            nn->denselayers[i].i = uintBuffer[0];                   //  Read number of inputs for DenseLayer[i] from buffer
-            nn->denselayers[i].n = uintBuffer[1];                   //  Read number of units for DenseLayer[i] from buffer
-            #ifdef __NEURON_DEBUG
-            printf("  nn->denselayers[%d].i = %d\n", i, nn->denselayers[i].i);
-            printf("  nn->denselayers[%d].n = %d\n", i, nn->denselayers[i].n);
-            #endif
-
-            len = (nn->denselayers[i].i + 1) * nn->denselayers[i].n;
-            if((nn->denselayers[i].W = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array while reading DenseLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->denselayers[i].M = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate mask array while reading DenseLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->denselayers[i].out = (double*)malloc(nn->denselayers[i].n * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate output array while reading DenseLayer[%d] from file\n", i);
-                exit(1);
-              }
-            for(j = 0; j < nn->denselayers[i].n; j++)               //  Allocate and blank out output array
-              nn->denselayers[i].out[j] = 0.0;
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read Dense Layer weights into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read DenseLayer[i]'s weights from buffer
-              nn->denselayers[i].W[j] = doubleBuffer[j];            //  in the order in which they exist in the file.
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->denselayers[%d].W[%d] = %.6f\n", i, j, nn->denselayers[i].W[j]);
-            #endif
-
-            if(i == 0)                                              //  If this is our first use of the Bool buffer, malloc
-              {
-                if((boolBuffer = (bool*)malloc(len * sizeof(bool))) == NULL)
-                  {
-                    printf("ERROR: Unable to allocate Boolean buffer while reading from file\n");
-                    exit(1);
-                  }
-              }
-            else                                                    //  Otherwise, realloc
-              {
-                if((boolBuffer = (bool*)realloc(boolBuffer, len * sizeof(bool))) == NULL)
-                  {
-                    printf("ERROR: Unable to reallocate Boolean buffer while reading from file\n");
-                    exit(1);
-                  }
-              }
-            if(fread(boolBuffer, sizeof(bool), len, fp) != len)     //  Read 'len' objects of size bool into buffer
-              {
-                printf("ERROR: Unable to read Dense Layer masks into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read DenseLayer[i]'s weights from buffer
-              {
-                if(boolBuffer[j])                                   //  True means UNMASKED, means w * 1.0
-                  nn->denselayers[i].M[j] = 1.0;
-                else                                                //  False means MASKED, means w * 0.0
-                  nn->denselayers[i].M[j] = 0.0;
-              }
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->denselayers[%d].M[%d] = %.6f\n", i, j, nn->denselayers[i].M[j]);
-            #endif
-
-            len = nn->denselayers[i].n;
-            if((nn->denselayers[i].f = (unsigned char*)malloc(len * sizeof(char))) == NULL)
-              {
-                printf("ERROR: Unable to allocate function flag array for DenseLayer[%d] while reading from file\n", i);
-                exit(1);
-              }
-            if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, len * sizeof(char))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(ucharBuffer, sizeof(char), len, fp) != len)    //  Read 'len' objects of size char into buffer
-              {
-                printf("ERROR: Unable to read Dense Layer functions into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read function flags
-              nn->denselayers[i].f[j] = ucharBuffer[j];
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->denselayers[%d].f[%d] = %d\n", i, j, nn->denselayers[i].f[j]);
-            #endif
-
-            if((nn->denselayers[i].alpha = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate function auxiliaries array for DenseLayer[%d] while reading from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read Dense Layer alpha into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read function auxiliaries
-              nn->denselayers[i].alpha[j] = doubleBuffer[j];
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->denselayers[%d].alpha[%d] = %.6f\n", i, j, nn->denselayers[i].alpha[j]);
-            #endif
-
-            if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
-                exit(1);
-              }
-                                                                    //  Read LAYER_NAME_LEN objects of size char to buffer
-            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
-              {
-                printf("ERROR: Unable to read Dense Layer name into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read layer name
-              nn->denselayers[i].name[j] = ucharBuffer[j];
-            #ifdef __NEURON_DEBUG
-            printf("  nn->denselayers[%d].name = %s\n\n", i, nn->denselayers[i].name);
-            #endif
+            printf("ERROR: Failed to read network dense layers\n");
+            exit(1);
           }
-        free(boolBuffer);                                           //  We won't need the Boolean buffer again
       }
 
     if(nn->convLen > 0)
@@ -1605,183 +1738,25 @@ bool load_NN(char* filename, NeuralNet* nn)
             printf("ERROR: Unable to allocate Conv2DLayer array while reading from file\n");
             exit(1);
           }
-        for(i = 0; i < nn->convLen; i++)                            //  Read in all convolutional layers
+        if(!read_Conv2D(nn->convlayers, nn->convLen, fp))
           {
-            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
-              {
-                printf("ERROR: Unable to read Convolution Layer parameters into buffer");
-                exit(1);
-              }
-            nn->convlayers[i].inputW = uintBuffer[0];               //  Read Conv2DLayer input width from buffer
-            nn->convlayers[i].inputH = uintBuffer[1];               //  Read Conv2DLayer input height from buffer
-            nn->convlayers[i].n = uintBuffer[2];                    //  Read number of Conv2DLayer filters from buffer
-            #ifdef __NEURON_DEBUG
-            printf("  nn->convlayers[%d].inputW = %d\n", i, nn->convlayers[i].inputW);
-            printf("  nn->convlayers[%d].inputH = %d\n", i, nn->convlayers[i].inputH);
-            printf("  nn->convlayers[%d].n      = %d\n", i, nn->convlayers[i].n);
-            #endif
-                                                                    //  Allocate 'n' filters
-            if((nn->convlayers[i].filters = (Filter2D*)malloc(nn->convlayers[i].n * sizeof(Filter2D))) == NULL)
-              {
-                printf("ERROR: Unable to allocate filter array for Conv2DLayer[%d] while reading from file\n", i);
-                exit(1);
-              }
-            for(j = 0; j < nn->convlayers[i].n; j++)                //  Fill in details of each filter in this layer
-              {
-                if(fread(uintBuffer, sizeof(int), 2, fp) != 2)      //  Read 2 objects of size int into buffer
-                  {
-                    printf("ERROR: Unable to read dimensions for Convolution Layer filter[%d] into buffer", j);
-                    exit(1);
-                  }
-                nn->convlayers[i].filters[j].w = uintBuffer[0];     //  Read dimensions
-                nn->convlayers[i].filters[j].h = uintBuffer[1];
-                #ifdef __NEURON_DEBUG
-                printf("  nn->convlayers[%d].filters[%d].w = %d\n", i, j, nn->convlayers[i].filters[j].w);
-                printf("  nn->convlayers[%d].filters[%d].h = %d\n", i, j, nn->convlayers[i].filters[j].h);
-                #endif
-
-                len = nn->convlayers[i].filters[j].w * nn->convlayers[i].filters[j].h + 1;
-                if((nn->convlayers[i].filters[j].W = (double*)malloc(len * sizeof(double))) == NULL)
-                  {
-                    printf("ERROR: Unable to allocate filter[%d] of Conv2DLayer[%d] while reading from file\n", j, i);
-                    exit(1);
-                  }
-                if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-                  {
-                    printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                    exit(1);
-                  }
-                                                                    //  Read len objects of size double into buffer
-                if(fread(doubleBuffer, sizeof(double), len, fp) != len)
-                  {
-                    printf("ERROR: Unable to read weights for Convolution Layer filter %d into buffer", j);
-                    exit(1);
-                  }
-                for(k = 0; k < len; k++)                            //  Read Filter2D weights and bias
-                  nn->convlayers[i].filters[j].W[k] = doubleBuffer[k];
-                #ifdef __NEURON_DEBUG
-                printf("  ");
-                for(k = 0; k < len; k++)
-                  printf("  %.3f", nn->convlayers[i].filters[j].W[k]);
-                printf("\n");
-                #endif
-              }
-            if((nn->convlayers[i].out = (double*)malloc(outputLen_Conv2D(nn->convlayers + i) * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate output array while reading Conv2DLayer[%d] from file\n", i);
-                exit(1);
-              }                                                     //  Allocate and blank out output array
-            for(j = 0; j < outputLen_Conv2D(nn->convlayers + i); j++)
-              nn->convlayers[i].out[j] = 0.0;
-
-            len = nn->convlayers[i].n;
-            if((nn->convlayers[i].f = (unsigned char*)malloc(len * sizeof(char))) == NULL)
-              {
-                printf("ERROR: Unable to allocate function flag array for Conv2DLayer[%d] while reading from file\n", i);
-                exit(1);
-              }
-            if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(ucharBuffer, sizeof(char), len, fp) != len)    //  Read 'len' objects of size char into buffer
-              {
-                printf("ERROR: Unable to read Convolution Layer functions into buffer");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read function flag array for layer[i]
-              nn->convlayers[i].f[j] = ucharBuffer[j];
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->convlayers[%d].f[%d] = %d\n", i, j, nn->convlayers[i].f[j]);
-            #endif
-
-            if((nn->convlayers[i].alpha = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate function auxiliaries array for Conv2DLayer[%d] while reading from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read Convolution Layer alpha into buffer");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read function auxiliaries for layer[i]
-              nn->convlayers[i].alpha[j] = doubleBuffer[j];
-            #ifdef __NEURON_DEBUG
-            for(j = 0; j < len; j++)
-              printf("  nn->convlayers[%d].alpha[%d] = %.6f\n", i, j, nn->convlayers[i].alpha[j]);
-            #endif
-
-            if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
-                exit(1);
-              }
-                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
-            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
-              {
-                printf("ERROR: Unable to read Convolution Layer into buffer");
-                exit(1);
-              }
-            for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read layer name
-              nn->convlayers[i].name[j] = ucharBuffer[j];
-            #ifdef __NEURON_DEBUG
-            printf("  nn->convlayers[%d].name = %s\n", i, nn->convlayers[i].name);
-            #endif
+            printf("ERROR: Failed to read network convolutional(2D) layers\n");
+            exit(1);
           }
       }
 
     if(nn->accumLen > 0)
       {
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-            exit(1);
-          }
                                                                     //  Allocate network's AccumLayer array
         if((nn->accumlayers = (AccumLayer*)malloc(nn->accumLen * sizeof(AccumLayer))) == NULL)
           {
             printf("ERROR: Unable to allocate AccumLayer array while reading from file\n");
             exit(1);
           }
-
-        for(i = 0; i < nn->accumLen; i++)                           //  Read all Accumulator Layers from file
+        if(!read_Accum(nn->accumlayers, nn->accumLen, fp))
           {
-            if(fread(uintBuffer, sizeof(int), 1, fp) != 1)          //  Read 1 object of size int into buffer
-              {
-                printf("ERROR: Unable to read Accumulation Layer parameter into buffer\n");
-                exit(1);
-              }
-            nn->accumlayers[i].i = uintBuffer[0];                   //  Read number of Accumulator inputs
-            #ifdef __NEURON_DEBUG
-            printf("  nn->accumlayers[%d].i = %d\n", i, nn->accumlayers[i].i);
-            #endif
-
-            if((nn->accumlayers[i].out = (double*)malloc(nn->accumlayers[i].i * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate output array while reading AccumLayer[%d] from file\n", i);
-                exit(1);
-              }
-            for(j = 0; j < nn->accumlayers[i].i; j++)               //  Allocate and blank out output array
-              nn->accumlayers[i].out[j] = 0.0;
-                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
-            if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
-              {
-                printf("ERROR: Unable to read Accumulation Layer name into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < LAYER_NAME_LEN; j++)                     //  Read Accumulator layer name
-              nn->accumlayers[i].name[j] = ucharBuffer[j];
-            #ifdef __NEURON_DEBUG
-            printf("  nn->accumlayers[%d].name = %s\n", i, nn->accumlayers[i].name);
-            #endif
+            printf("ERROR: Failed to read network accumulation layers\n");
+            exit(1);
           }
       }
 
@@ -1793,208 +1768,10 @@ bool load_NN(char* filename, NeuralNet* nn)
             printf("ERROR: Unable to allocate LSTMLayer array while reading from file\n");
             exit(1);
           }
-        if((uintBuffer = (unsigned int*)realloc(uintBuffer, 3 * sizeof(int))) == NULL)
+        if(!read_LSTM(nn->lstmlayers, nn->lstmLen, fp))
           {
-            printf("ERROR: Unable to reallocate unsigned int buffer while reading from file\n");
+            printf("ERROR: Failed to read network LSTM layers\n");
             exit(1);
-          }
-        for(i = 0; i < nn->lstmLen; i++)
-          {
-            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
-              {
-                printf("ERROR: Unable to read LSTM parameters into buffer\n");
-                exit(1);
-              }
-            nn->lstmlayers[i].d = uintBuffer[0];                    //  Read input dimensionality for LSTMLayer[i] from buffer
-            nn->lstmlayers[i].h = uintBuffer[1];                    //  Read state dimensionality for LSTMLayer[i] from buffer
-            nn->lstmlayers[i].cache = uintBuffer[2];                //  Read state cache size for LSTMLayer[i] from buffer
-            nn->lstmlayers[i].t = 0;                                //  Initialize time step to 0
-            #ifdef __NEURON_DEBUG
-            printf("  nn->lstmlayers[%d].d = %d\n", i, nn->lstmlayers[i].d);
-            printf("  nn->lstmlayers[%d].h = %d\n", i, nn->lstmlayers[i].h);
-            printf("  nn->lstmlayers[%d].cache = %d\n", i, nn->lstmlayers[i].cache);
-            #endif
-
-            len = nn->lstmlayers[i].d * nn->lstmlayers[i].h;        //  Allocate all things d*h
-            if((nn->lstmlayers[i].Wi = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wi while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Wo = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wo while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Wf = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wf while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Wc = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wc while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Wi into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wi weights from buffer
-              nn->lstmlayers[i].Wi[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Wo into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wo weights from buffer
-              nn->lstmlayers[i].Wo[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Wf into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wf weights from buffer
-              nn->lstmlayers[i].Wf[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Wc into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Wc weights from buffer
-              nn->lstmlayers[i].Wc[j] = doubleBuffer[j];
-
-            len = nn->lstmlayers[i].h * nn->lstmlayers[i].h;        //  Allocate all things h*h
-            if((nn->lstmlayers[i].Ui = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Ui while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Uo = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Uo while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Uf = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Uf while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].Uc = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Uc while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Ui into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Ui weights from buffer
-              nn->lstmlayers[i].Ui[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Uo into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uo weights from buffer
-              nn->lstmlayers[i].Uo[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Uf into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uf weights from buffer
-              nn->lstmlayers[i].Uf[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM Uc into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s Uc weights from buffer
-              nn->lstmlayers[i].Uc[j] = doubleBuffer[j];
-
-            len = nn->lstmlayers[i].h;                              //  Allocate all things h
-            if((nn->lstmlayers[i].bi = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bi while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].bo = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bo while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].bf = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bf while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].bc = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bc while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->lstmlayers[i].c = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate cell array while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM bi into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bi bias from buffer
-              nn->lstmlayers[i].bi[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM bo into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bo bias from buffer
-              nn->lstmlayers[i].bo[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM bf into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bf bias from buffer
-              nn->lstmlayers[i].bf[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read LSTM bc into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read LSTMLayer[i]'s bc bias from buffer
-              nn->lstmlayers[i].bc[j] = doubleBuffer[j];
-            for(j = 0; j < len; j++)                                //  Set vector c to zero-vector
-              nn->lstmlayers[i].c[j] = 0.0;
-
-            len = nn->lstmlayers[i].h * nn->lstmlayers[i].cache;    //  Allocate the output/state cache
-            if((nn->lstmlayers[i].H = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate state cache while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Blank out output matrix
-              nn->lstmlayers[i].H[j] = 0.0;
           }
       }
 
@@ -2006,175 +1783,77 @@ bool load_NN(char* filename, NeuralNet* nn)
             printf("ERROR: Unable to allocate GRULayer array while reading from file\n");
             exit(1);
           }
-        if((uintBuffer = (unsigned int*)realloc(uintBuffer, 3 * sizeof(int))) == NULL)
+        if(!read_GRU(nn->grulayers, nn->gruLen, fp))
           {
-            printf("ERROR: Unable to reallocate unsigned int buffer while reading from file\n");
+            printf("ERROR: Failed to read network GRU layers\n");
             exit(1);
           }
-        for(i = 0; i < nn->gruLen; i++)
+      }
+
+    if(nn->poolLen > 0)
+      {
+                                                                    //  Allocate network's Pool2DLayer array
+        if((nn->poollayers = (Pool2DLayer*)malloc(nn->poolLen * sizeof(Pool2DLayer))) == NULL)
           {
-            if(fread(uintBuffer, sizeof(int), 3, fp) != 3)          //  Read 3 objects of size int into buffer
-              {
-                printf("ERROR: Unable to read GRU parameters into buffer\n");
-                exit(1);
-              }
-            nn->grulayers[i].d = uintBuffer[0];                     //  Read input dimensionality for GRULayer[i] from buffer
-            nn->grulayers[i].h = uintBuffer[1];                     //  Read state dimensionality for GRULayer[i] from buffer
-            nn->grulayers[i].cache = uintBuffer[2];                 //  Read state cache size for GRULayer[i] from buffer
-            nn->grulayers[i].t = 0;                                 //  Initialize time step to 0
-            #ifdef __NEURON_DEBUG
-            printf("  nn->grulayers[%d].d = %d\n", i, nn->grulayers[i].d);
-            printf("  nn->grulayers[%d].h = %d\n", i, nn->grulayers[i].h);
-            printf("  nn->grulayers[%d].cache = %d\n", i, nn->grulayers[i].cache);
-            #endif
+            printf("ERROR: Unable to allocate Pool2DLayer array while reading from file\n");
+            exit(1);
+          }
+        if(!read_Pool2D(nn->poollayers, nn->poolLen, fp))
+          {
+            printf("ERROR: Failed to read network 2D pooling layers\n");
+            exit(1);
+          }
+      }
 
-            len = nn->grulayers[i].d * nn->grulayers[i].h;          //  Allocate all things d*h
-            if((nn->grulayers[i].Wz = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wz while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].Wr = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wr while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].Wh = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Wh while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Wz into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wz weights from buffer
-              nn->grulayers[i].Wz[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Wr into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wr weights from buffer
-              nn->grulayers[i].Wr[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Wz into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Wh weights from buffer
-              nn->grulayers[i].Wh[j] = doubleBuffer[j];
+    if(nn->upresLen > 0)
+      {
+                                                                    //  Allocate network's UpresLayer array
+        if((nn->upreslayers = (UpresLayer*)malloc(nn->upresLen * sizeof(UpresLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate UpresLayer array while reading from file\n");
+            exit(1);
+          }
+        if(!read_Upres(nn->upreslayers, nn->upresLen, fp))
+          {
+            printf("ERROR: Failed to read network up-resolution layers\n");
+            exit(1);
+          }
+      }
 
-            len = nn->grulayers[i].h * nn->grulayers[i].h;          //  Allocate all things h*h
-            if((nn->grulayers[i].Uz = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Uz while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].Ur = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Ur while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].Uh = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate weight array Uh while reading LSTMLayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Uz into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Uz weights from buffer
-              nn->grulayers[i].Uz[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Ur into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Ur weights from buffer
-              nn->grulayers[i].Ur[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU Uh into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s Uh weights from buffer
-              nn->grulayers[i].Uh[j] = doubleBuffer[j];
-
-            len = nn->grulayers[i].h;                               //  Allocate all things h
-            if((nn->grulayers[i].bz = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bz while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].br = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array br while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((nn->grulayers[i].bh = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate bias array bh while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for reading from file\n");
-                exit(1);
-              }
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU bz into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s bz bias from buffer
-              nn->grulayers[i].bz[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU br into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s br bias from buffer
-              nn->grulayers[i].br[j] = doubleBuffer[j];
-            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read 'len' objects of size double into buffer
-              {
-                printf("ERROR: Unable to read GRU bh into buffer\n");
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Read GRULayer[i]'s bh bias from buffer
-              nn->grulayers[i].bh[j] = doubleBuffer[j];
-
-            len = nn->grulayers[i].h * nn->grulayers[i].cache;      //  Allocate the output/state cache
-            if((nn->grulayers[i].H = (double*)malloc(len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to allocate state cache while reading GRULayer[%d] from file\n", i);
-                exit(1);
-              }
-            for(j = 0; j < len; j++)                                //  Blank out output matrix
-              nn->grulayers[i].H[j] = 0.0;
+    if(nn->normalLen > 0)
+      {
+                                                                    //  Allocate network's NormalLayer array
+        if((nn->normlayers = (NormalLayer*)malloc(nn->normalLen * sizeof(NormalLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate NormalLayer array while reading from file\n");
+            exit(1);
+          }
+        if(!read_Normal(nn->normlayers, nn->normalLen, fp))
+          {
+            printf("ERROR: Failed to read network normalization layers\n");
+            exit(1);
           }
       }
 
     if(nn->vars > 0)                                                //  Read all Variables
       {
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, VARSTR_LEN * sizeof(char))) == NULL)
+                                                                    //  Allocate network's Variable array
+        if((nn->variables = (Variable*)malloc(nn->vars * sizeof(Variable))) == NULL)
           {
-            printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
+            printf("ERROR: Unable to allocate Variable array while reading from file\n");
             exit(1);
           }
+        if((ucharBuffer = (unsigned char*)malloc(VARSTR_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            exit(1);
+          }
+        if((doubleBuffer = (double*)malloc(sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            exit(1);
+          }
+
         for(i = 0; i < nn->vars; i++)                               //  Write all Variables to file
           {
                                                                     //  Read VARSTR_LEN objects of size char into buffer
@@ -2199,11 +1878,11 @@ bool load_NN(char* filename, NeuralNet* nn)
             printf("  nn->variables[%d].value = %.6f\n", i, nn->variables[i].value);
             #endif
           }
+
+        free(ucharBuffer);
+        free(doubleBuffer);
       }
 
-    free(ucharBuffer);
-    free(uintBuffer);
-    free(doubleBuffer);
     fclose(fp);
 
     return true;
@@ -2214,11 +1893,9 @@ bool write_NN(char* filename, NeuralNet* nn)
   {
     FILE* fp;
     unsigned char* ucharBuffer;
-    bool* boolBuffer;
     unsigned int* uintBuffer;
     double* doubleBuffer;
-    unsigned int len;
-    unsigned int i, j, k;
+    unsigned int i, j;
 
     #ifdef __NEURON_DEBUG
     printf("write_NN(%s)\n", filename);
@@ -2231,8 +1908,8 @@ bool write_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to allocate unsigned char buffer for writing to file\n");
         exit(1);
       }
-                                                                    //  Allocate 7 uints
-    if((uintBuffer = (unsigned int*)malloc(7 * sizeof(int))) == NULL)
+                                                                    //  Allocate 10 uints
+    if((uintBuffer = (unsigned int*)malloc(10 * sizeof(int))) == NULL)
       {
         printf("ERROR: Unable to allocate unsigned int buffer for writing to file\n");
         exit(1);
@@ -2242,7 +1919,9 @@ bool write_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to allocate double buffer for writing to file\n");
         exit(1);
       }
-
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
     uintBuffer[0] = nn->i;                                          //  Save NeuralNet input count to buffer
     uintBuffer[1] = nn->len;                                        //  Save NeuralNet edge count to buffer
     uintBuffer[2] = nn->denseLen;                                   //  Save number of Dense Layers to buffer
@@ -2250,45 +1929,75 @@ bool write_NN(char* filename, NeuralNet* nn)
     uintBuffer[4] = nn->accumLen;                                   //  Save number of Accumulator Layers to buffer
     uintBuffer[5] = nn->lstmLen;                                    //  Save number of LSTM Layers to buffer
     uintBuffer[6] = nn->gruLen;                                     //  Save number of GRU Layers to buffer
-    fwrite(uintBuffer, sizeof(int), 7, fp);                         //  From buffer, write 6 objects of size int
+    uintBuffer[7] = nn->poolLen;                                    //  Save number of Pool Layers to buffer
+    uintBuffer[8] = nn->upresLen;                                   //  Save number of Upres Layers to buffer
+    uintBuffer[9] = nn->normalLen;                                  //  Save number of Normal Layers to buffer
+    if(fwrite(uintBuffer, sizeof(int), 10, fp) != 10)               //  From buffer, write 10 objects of size int
+      {
+        printf("ERROR: Unable to write to file from unsigned int buffer.\n");
+        exit(1);
+      }
     #ifdef __NEURON_DEBUG
-    printf("  uintBuffer[0] = nn->i        = %d\n", uintBuffer[0]);
-    printf("  uintBuffer[1] = nn->len      = %d\n", uintBuffer[1]);
-    printf("  uintBuffer[2] = nn->denseLen = %d\n", uintBuffer[2]);
-    printf("  uintBuffer[3] = nn->convLen  = %d\n", uintBuffer[3]);
-    printf("  uintBuffer[4] = nn->accumLen = %d\n", uintBuffer[4]);
-    printf("  uintBuffer[5] = nn->lstmLen  = %d\n", uintBuffer[5]);
-    printf("  uintBuffer[6] = nn->gruLen   = %d\n", uintBuffer[6]);
+    printf("  uintBuffer[0] = nn->i         = %d\n", uintBuffer[0]);
+    printf("  uintBuffer[1] = nn->len       = %d\n", uintBuffer[1]);
+    printf("  uintBuffer[2] = nn->denseLen  = %d\n", uintBuffer[2]);
+    printf("  uintBuffer[3] = nn->convLen   = %d\n", uintBuffer[3]);
+    printf("  uintBuffer[4] = nn->accumLen  = %d\n", uintBuffer[4]);
+    printf("  uintBuffer[5] = nn->lstmLen   = %d\n", uintBuffer[5]);
+    printf("  uintBuffer[6] = nn->gruLen    = %d\n", uintBuffer[6]);
+    printf("  uintBuffer[7] = nn->poolLen   = %d\n", uintBuffer[7]);
+    printf("  uintBuffer[8] = nn->upresLen  = %d\n", uintBuffer[8]);
+    printf("  uintBuffer[9] = nn->normalLen = %d\n", uintBuffer[9]);
     #endif
 
     ucharBuffer[0] = nn->vars;                                      //  Save number of Variables to buffer
-    fwrite(ucharBuffer, sizeof(char), 1, fp);                       //  From buffer, write 1 object of size char
+    if(fwrite(ucharBuffer, sizeof(char), 1, fp) != 1)               //  From buffer, write 1 object of size char
+      {
+        printf("ERROR: Unable to write to file from unsigned char buffer.\n");
+        exit(1);
+      }
     #ifdef __NEURON_DEBUG
     printf("  ucharBuffer[0] = nn->vars    = %d\n", ucharBuffer[0]);
     #endif
 
     uintBuffer[0] = nn->gen;                                        //  Save generation/epoch to buffer
-    fwrite(uintBuffer, sizeof(int), 1, fp);                         //  From buffer, write 1 object of size int
+    if(fwrite(uintBuffer, sizeof(int), 1, fp) != 1)                 //  From buffer, write 1 object of size int
+      {
+        printf("ERROR: Unable to write to file from unsigned int buffer.\n");
+        exit(1);
+      }
     #ifdef __NEURON_DEBUG
     printf("  uintBuffer[0] = nn->gen      = %d\n", uintBuffer[0]);
     #endif
 
     doubleBuffer[0] = nn->fit;                                      //  Save fitness to buffer
-    fwrite(doubleBuffer, sizeof(double), 1, fp);                    //  From buffer, write 1 object of size double
+    if(fwrite(doubleBuffer, sizeof(double), 1, fp) != 1)            //  From buffer, write 1 object of size double
+      {
+        printf("ERROR: Unable to write to file from double buffer.\n");
+        exit(1);
+      }
     #ifdef __NEURON_DEBUG
     printf("  doubleBuffer[0] = nn->fit    = %.6f\n", doubleBuffer[0]);
     #endif
                                                                     //  Write network comment to file
     if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, COMMSTR_LEN * sizeof(char))) == NULL)
       {
-        printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
+        printf("ERROR: Unable to re-allocate unsigned char buffer for writing to file\n");
         exit(1);
       }
+                                                                    //  ucharBuffer  --> COMMSTR_LEN
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
     for(i = 0; i < COMMSTR_LEN; i++)
       ucharBuffer[i] = nn->comment[i];
-    fwrite(ucharBuffer, COMMSTR_LEN, 1, fp);                        //  From buffer, write COMMSTR_LEN objects of size char
+                                                                    //  From buffer, write COMMSTR_LEN objects of size char
+    if(fwrite(ucharBuffer, sizeof(char), COMMSTR_LEN, fp) != COMMSTR_LEN)
+      {
+        printf("ERROR: Unable to write to file from unsigned char buffer.\n");
+        exit(1);
+      }
     #ifdef __NEURON_DEBUG
-    printf("  ucharBuffer = %s\n  Edge List:\n", ucharBuffer);
+    printf("  ucharBuffer = %s\n", ucharBuffer);
     #endif
                                                                     //  Shrink buffer to 1
     if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, sizeof(char))) == NULL)
@@ -2296,10 +2005,20 @@ bool write_NN(char* filename, NeuralNet* nn)
         printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
         exit(1);
       }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 10
+                                                                    //  doubleBuffer --> 1
+    #ifdef __NEURON_DEBUG
+    printf("  Edge List:\n");
+    #endif
     for(i = 0; i < nn->len; i++)                                    //  Write all Edges to file
       {
         ucharBuffer[0] = nn->edgelist[i].srcType;                   //  Save edge source type to buffer
-        fwrite(ucharBuffer, sizeof(char), 1, fp);                   //  From buffer, write 1 object of size char
+        if(fwrite(ucharBuffer, sizeof(char), 1, fp) != 1)           //  From buffer, write 1 object of size char
+          {
+            printf("ERROR: Unable to write to file from unsigned char buffer.\n");
+            exit(1);
+          }
         #ifdef __NEURON_DEBUG
         printf("    ucharBuffer[0] = %d\n", ucharBuffer[0]);
         #endif
@@ -2307,7 +2026,11 @@ bool write_NN(char* filename, NeuralNet* nn)
         uintBuffer[0] = nn->edgelist[i].srcIndex;                   //  Save edge source index to buffer
         uintBuffer[1] = nn->edgelist[i].selectorStart;              //  Save edge selector start to buffer
         uintBuffer[2] = nn->edgelist[i].selectorEnd;                //  Save edge selector end to buffer
-        fwrite(uintBuffer, sizeof(int), 3, fp);                     //  From buffer, write 3 objects of size int
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
+          {
+            printf("ERROR: Unable to write to file from unsigned int buffer.\n");
+            exit(1);
+          }
         #ifdef __NEURON_DEBUG
         printf("    uintBuffer[0] = %d\n", uintBuffer[0]);
         printf("    uintBuffer[1] = %d\n", uintBuffer[1]);
@@ -2315,460 +2038,112 @@ bool write_NN(char* filename, NeuralNet* nn)
         #endif
 
         ucharBuffer[0] = nn->edgelist[i].dstType;                   //  Save edge destination type to buffer
-        fwrite(ucharBuffer, sizeof(char), 1, fp);                   //  From buffer, write 1 object of size char
+        if(fwrite(ucharBuffer, sizeof(char), 1, fp) != 1)           //  From buffer, write 1 object of size char
+          {
+            printf("ERROR: Unable to write to file from unsigned char buffer.\n");
+            exit(1);
+          }
         #ifdef __NEURON_DEBUG
         printf("    ucharBuffer[0] = %d\n", ucharBuffer[0]);
         #endif
 
         uintBuffer[0] = nn->edgelist[i].dstIndex;                   //  Save edge destination index to buffer
-        fwrite(uintBuffer, sizeof(int), 1, fp);                     //  From buffer, write 1 object of size int
+        if(fwrite(uintBuffer, sizeof(int), 1, fp) != 1)             //  From buffer, write 1 object of size int
+          {
+            printf("ERROR: Unable to write to file from unsigned int buffer.\n");
+            exit(1);
+          }
         #ifdef __NEURON_DEBUG
         printf("    uintBuffer[0] = %d\n\n", uintBuffer[0]);
         #endif
       }
 
-    for(i = 0; i < nn->denseLen; i++)                               //  Write all Dense Layers to file
+    free(ucharBuffer);                                              //  ucharBuffer  --> 0
+    free(uintBuffer);                                               //  uintBuffer   --> 0
+    free(doubleBuffer);                                             //  doubleBuffer --> 0
+
+    if(nn->denseLen > 0)
       {
-        uintBuffer[0] = nn->denselayers[i].i;                       //  Save number of DenseLayer inputs to buffer
-        uintBuffer[1] = nn->denselayers[i].n;                       //  Save number of DenseLayer units to buffer
-        fwrite(uintBuffer, sizeof(int), 2, fp);                     //  From buffer, write 2 objects of size int
-        #ifdef __NEURON_DEBUG
-        printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-        printf("  uintBuffer[1] = %d\n", uintBuffer[1]);
-        #endif
-
-        len = (nn->denselayers[i].i + 1) * nn->denselayers[i].n;
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+        if(!write_Dense(nn->denselayers, nn->denseLen, fp))
           {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
+            printf("ERROR: Failed to write network dense layers\n");
             exit(1);
           }
-        for(j = 0; j < len; j++)                                    //  Write weights as they exist in the buffer
-          doubleBuffer[j] = nn->denselayers[i].W[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        if(i == 0)                                                  //  We haven't used the Bool buffer before
-          {                                                         //  so consider the first case
-            if((boolBuffer = (bool*)malloc(len * sizeof(bool))) == NULL)
-              {
-                printf("ERROR: Unable to allocate Boolean buffer for writing to file\n");
-                exit(1);
-              }
-          }
-        else
-          {
-            if((boolBuffer = (bool*)realloc(boolBuffer, len * sizeof(bool))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate Boolean buffer for writing to file\n");
-                exit(1);
-              }
-          }
-        for(j = 0; j < len; j++)                                    //  When live, M matrix is 0.0 or 1.0.
-          {                                                         //  When stored, M matrix is false or true
-            if(nn->denselayers[i].M[j] == 0.0)                      //                           (masked) (unmasked)
-              boolBuffer[j] = false;
-            else
-              boolBuffer[j] = true;
-          }
-        fwrite(boolBuffer, sizeof(bool), len, fp);                  //  From buffer, write 'len' objects of size bool
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          {
-            if(nn->denselayers[i].M[j] == 0.0)
-              printf("  boolBuffer[%d] = 0\n", j);
-            else
-              printf("  boolBuffer[%d] = 1\n", j);
-          }
-        #endif
-
-        len = nn->denselayers[i].n;
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, len * sizeof(char))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Write function flags
-          ucharBuffer[j] = nn->denselayers[i].f[j];
-        fwrite(ucharBuffer, sizeof(char), len, fp);                 //  From buffer, write 'len' objects of size char
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  ucharBuffer[%d] = %d\n", j, ucharBuffer[j]);
-        #endif
-
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Write function auxiliaries
-          doubleBuffer[j] = nn->denselayers[i].alpha[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name
-          ucharBuffer[j] = nn->denselayers[i].name[j];
-        fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);      //  From buffer, write LAYER_NAME_LEN chars
-        #ifdef __NEURON_DEBUG
-        printf("  ucharBuffer = %s\n\n", ucharBuffer);
-        #endif
-      }
-    if(nn->denseLen > 0)                                            //  We won't need the Boolean buffer again
-      free(boolBuffer);
-
-    if((uintBuffer = (unsigned int*)realloc(uintBuffer, 3 * sizeof(int))) == NULL)
-      {
-        printf("ERROR: Unable to reallocate unsigned int buffer for writing to file\n");
-        exit(1);
-      }
-    for(i = 0; i < nn->convLen; i++)                                //  Write all Convolutional Layers to file
-      {
-        uintBuffer[0] = nn->convlayers[i].inputW;                   //  Save Conv2DLayer input width to buffer
-        uintBuffer[1] = nn->convlayers[i].inputH;                   //  Save Conv2DLayer input height to buffer
-        uintBuffer[2] = nn->convlayers[i].n;                        //  Save number of Conv2DLayer filters to buffer
-        fwrite(uintBuffer, sizeof(int), 3, fp);                     //  From buffer, write 3 objects of size int
-        #ifdef __NEURON_DEBUG
-        printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-        printf("  uintBuffer[1] = %d\n", uintBuffer[1]);
-        printf("  uintBuffer[2] = %d\n", uintBuffer[2]);
-        #endif
-
-        for(j = 0; j < nn->convlayers[i].n; j++)                    //  Write all convlayer[i]'s filters
-          {
-            uintBuffer[0] = nn->convlayers[i].filters[j].w;         //  Write dimensions
-            uintBuffer[1] = nn->convlayers[i].filters[j].h;
-            fwrite(uintBuffer, sizeof(int), 2, fp);                 //  From buffer, write 2 objects of size int
-            #ifdef __NEURON_DEBUG
-            printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-            printf("  uintBuffer[1] = %d\n", uintBuffer[1]);
-            #endif
-
-            len = nn->convlayers[i].filters[j].w * nn->convlayers[i].filters[j].h + 1;
-            if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-              {
-                printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-                exit(1);
-              }
-            for(k = 0; k < len; k++)                                //  Write all filter weights and bias
-              doubleBuffer[k] = nn->convlayers[i].filters[j].W[k];
-            fwrite(doubleBuffer, sizeof(double), len, fp);          //  From buffer, write 'len' objects of size double
-            #ifdef __NEURON_DEBUG
-            for(k = 0; k < len; k++)
-              printf("  doubleBuffer[%d] = %.6f\n", k, doubleBuffer[k]);
-            #endif
-          }
-
-        len = nn->convlayers[i].n;
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, len * sizeof(char))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)
-          ucharBuffer[j] = nn->convlayers[i].f[j];
-        fwrite(ucharBuffer, sizeof(char), len, fp);                 //  From buffer, write 'len' objects of size char
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  ucharBuffer[%d] = %d\n", j, ucharBuffer[j]);
-        #endif
-
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)
-          doubleBuffer[j] = nn->convlayers[i].alpha[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < LAYER_NAME_LEN; j++)
-          ucharBuffer[j] = nn->convlayers[i].name[j];
-        fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);      //  From buffer, write LAYER_NAME_LEN chars
-        #ifdef __NEURON_DEBUG
-        printf("  ucharBuffer = %s\n\n", ucharBuffer);
-        #endif
       }
 
-    if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
+    if(nn->convLen > 0)
       {
-        printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-        exit(1);
-      }
-    for(i = 0; i < nn->accumLen; i++)                               //  Write all Accumulator Layers to file
-      {
-        uintBuffer[0] = nn->accumlayers[i].i;                       //  Save number of AccumLayer inputs to buffer
-        fwrite(uintBuffer, sizeof(int), 1, fp);                     //  From buffer, write 1 object of size int
-        #ifdef __NEURON_DEBUG
-        printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-        #endif
-
-        for(j = 0; j < LAYER_NAME_LEN; j++)
-          ucharBuffer[j] = nn->accumlayers[i].name[j];
-        fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);      //  From buffer, write LAYER_NAME_LEN chars
-        #ifdef __NEURON_DEBUG
-        printf("  ucharBuffer = %s\n\n", ucharBuffer);
-        #endif
+        if(!write_Conv2D(nn->convlayers, nn->convLen, fp))
+          {
+            printf("ERROR: Failed to write network convolutional(2D) layers\n");
+            exit(1);
+          }
       }
 
-    for(i = 0; i < nn->lstmLen; i++)                                //  Write all LSTM Layers to file
+    if(nn->accumLen > 0)
       {
-        uintBuffer[0] = nn->lstmlayers[i].d;                        //  Save LSTMLayer input dimension to buffer
-        uintBuffer[1] = nn->lstmlayers[i].h;                        //  Save LSTMLayer state dimension to buffer
-        uintBuffer[2] = nn->lstmlayers[i].cache;                    //  Save LSTMLayer state cache size to buffer
-        fwrite(uintBuffer, sizeof(int), 3, fp);                     //  From buffer, write 3 objects of size int
-        #ifdef __NEURON_DEBUG
-        printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-        printf("  uintBuffer[1] = %d\n", uintBuffer[1]);
-        printf("  uintBuffer[2] = %d\n", uintBuffer[2]);
-        #endif
-
-        len = nn->lstmlayers[i].d * nn->lstmlayers[i].h;            //  Write all d-by-h W matrices
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+        if(!write_Accum(nn->accumlayers, nn->accumLen, fp))
           {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
+            printf("ERROR: Failed to write network accumulation layers\n");
             exit(1);
           }
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Wi weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Wi[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Wo weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Wo[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Wf weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Wf[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Wc weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Wc[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        len = nn->lstmlayers[i].h * nn->lstmlayers[i].h;            //  Write all h-by-h U matrices
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Ui weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Ui[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Uo weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Uo[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Uf weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Uf[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer Uc weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].Uc[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        len = nn->lstmlayers[i].h;                                  //  Write all h-length b vectors
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer bi weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].bi[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer bo weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].bo[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer bf weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].bf[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save LSTMLayer bc weights to buffer
-          doubleBuffer[j] = nn->lstmlayers[i].bc[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        for(j = 0; j < LAYER_NAME_LEN; j++)
-          ucharBuffer[j] = nn->lstmlayers[i].name[j];
-        fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);      //  From buffer, write LAYER_NAME_LEN chars
-        #ifdef __NEURON_DEBUG
-        printf("  ucharBuffer = %s\n\n", ucharBuffer);
-        #endif
       }
 
-    for(i = 0; i < nn->gruLen; i++)                                 //  Write all GRU Layers to file
+    if(nn->lstmLen > 0)
       {
-        uintBuffer[0] = nn->grulayers[i].d;                         //  Save GRULayer input dimension to buffer
-        uintBuffer[1] = nn->grulayers[i].h;                         //  Save GRULayer state dimension to buffer
-        uintBuffer[2] = nn->grulayers[i].cache;                     //  Save GRULayer state cache size to buffer
-        fwrite(uintBuffer, sizeof(int), 3, fp);                     //  From buffer, write 3 objects of size int
-        #ifdef __NEURON_DEBUG
-        printf("  uintBuffer[0] = %d\n", uintBuffer[0]);
-        printf("  uintBuffer[1] = %d\n", uintBuffer[1]);
-        printf("  uintBuffer[2] = %d\n", uintBuffer[2]);
-        #endif
-
-        len = nn->grulayers[i].d * nn->grulayers[i].h;              //  Write all d-by-h W matrices
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+        if(!write_LSTM(nn->lstmlayers, nn->lstmLen, fp))
           {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
+            printf("ERROR: Failed to write network LSTM layers\n");
             exit(1);
           }
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Wz weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Wz[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Wr weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Wr[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Wh weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Wh[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        len = nn->grulayers[i].h * nn->grulayers[i].h;              //  Write all h-by-h U matrices
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Uz weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Uz[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Ur weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Ur[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer Uh weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].Uh[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        len = nn->grulayers[i].h;                                   //  Write all h-length b vectors
-        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to reallocate double buffer for writing to file\n");
-            exit(1);
-          }
-        for(j = 0; j < len; j++)                                    //  Save GRULayer bz weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].bz[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer br weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].br[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-        for(j = 0; j < len; j++)                                    //  Save GRULayer bh weights to buffer
-          doubleBuffer[j] = nn->grulayers[i].bh[j];
-        fwrite(doubleBuffer, sizeof(double), len, fp);              //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
-        for(j = 0; j < len; j++)
-          printf("  doubleBuffer[%d] = %.6f\n", j, doubleBuffer[j]);
-        #endif
-
-        for(j = 0; j < LAYER_NAME_LEN; j++)
-          ucharBuffer[j] = nn->grulayers[i].name[j];
-        fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp);      //  From buffer, write LAYER_NAME_LEN chars
-        #ifdef __NEURON_DEBUG
-        printf("  ucharBuffer = %s\n\n", ucharBuffer);
-        #endif
       }
 
-    if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, VARSTR_LEN * sizeof(char))) == NULL)
+    if(nn->gruLen > 0)
       {
-        printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
-        exit(1);
+        if(!write_GRU(nn->grulayers, nn->gruLen, fp))
+          {
+            printf("ERROR: Failed to write network GRU layers\n");
+            exit(1);
+          }
       }
+
+    if(nn->poolLen > 0)
+      {
+        if(!write_Pool2D(nn->poollayers, nn->poolLen, fp))
+          {
+            printf("ERROR: Failed to write network 2D pooling layers\n");
+            exit(1);
+          }
+      }
+
+    if(nn->upresLen > 0)
+      {
+        if(!write_Upres(nn->upreslayers, nn->upresLen, fp))
+          {
+            printf("ERROR: Failed to write network up-resolution layers\n");
+            exit(1);
+          }
+      }
+
+    if(nn->normalLen > 0)
+      {
+        if(!write_Normal(nn->normlayers, nn->normalLen, fp))
+          {
+            printf("ERROR: Failed to write network normalization layers\n");
+            exit(1);
+          }
+      }
+
     for(i = 0; i < nn->vars; i++)                                   //  Write all Variables to file
       {
-        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, VARSTR_LEN * sizeof(char))) == NULL)
+        if((ucharBuffer = (unsigned char*)malloc(VARSTR_LEN * sizeof(char))) == NULL)
           {
-            printf("ERROR: Unable to reallocate unsigned char buffer for writing to file\n");
+            printf("ERROR: Unable to allocate unsigned char buffer for writing to file\n");
+            exit(1);
+          }
+        if((doubleBuffer = (double*)malloc(sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer for writing to file\n");
             exit(1);
           }
         for(j = 0; j < VARSTR_LEN; j++)
@@ -2783,11 +2158,11 @@ bool write_NN(char* filename, NeuralNet* nn)
         #ifdef __NEURON_DEBUG
         printf("  doubleBuffer[0] = %.6f\n\n", doubleBuffer[0]);
         #endif
+
+        free(ucharBuffer);
+        free(doubleBuffer);
       }
 
-    free(ucharBuffer);
-    free(uintBuffer);
-    free(doubleBuffer);
     fclose(fp);
 
     return true;
@@ -2850,6 +2225,24 @@ void sortEdges(NeuralNet* nn)
     for(i = 0; i < nn->gruLen; i++)                                 //  Add all GRU Layers
       {
         nodelist[j].type = GRU_ARRAY;
+        nodelist[j].index = i;
+        j++;
+      }
+    for(i = 0; i < nn->poolLen; i++)                                //  Add all Pool Layers
+      {
+        nodelist[j].type = POOL_ARRAY;
+        nodelist[j].index = i;
+        j++;
+      }
+    for(i = 0; i < nn->upresLen; i++)                               //  Add all Upres Layers
+      {
+        nodelist[j].type = UPRES_ARRAY;
+        nodelist[j].index = i;
+        j++;
+      }
+    for(i = 0; i < nn->normalLen; i++)                              //  Add all Normal Layers
+      {
+        nodelist[j].type = NORMAL_ARRAY;
         nodelist[j].index = i;
         j++;
       }
@@ -3061,6 +2454,24 @@ unsigned int nameIndex(char* name, NeuralNet* nn)
     if(i < nn->gruLen)
       return i;
 
+    i = 0;                                                          //  Check Pool layers
+    while(i < nn->poolLen && strcmp(nn->poollayers[i].name, name) != 0)
+      i++;
+    if(i < nn->poolLen)
+      return i;
+
+    i = 0;                                                          //  Check Upres layers
+    while(i < nn->upresLen && strcmp(nn->upreslayers[i].name, name) != 0)
+      i++;
+    if(i < nn->upresLen)
+      return i;
+
+    i = 0;                                                          //  Check Normalization layers
+    while(i < nn->normalLen && strcmp(nn->normlayers[i].name, name) != 0)
+      i++;
+    if(i < nn->normalLen)
+      return i;
+
     return UINT_MAX;
   }
 
@@ -3105,6 +2516,24 @@ unsigned char nameType(char* name, NeuralNet* nn)
       i++;
     if(i < nn->gruLen)
       return GRU_ARRAY;
+
+    i = 0;                                                          //  Check Pool layers
+    while(i < nn->poolLen && strcmp(nn->poollayers[i].name, name) != 0)
+      i++;
+    if(i < nn->poolLen)
+      return POOL_ARRAY;
+
+    i = 0;                                                          //  Check Upres layers
+    while(i < nn->upresLen && strcmp(nn->upreslayers[i].name, name) != 0)
+      i++;
+    if(i < nn->upresLen)
+      return UPRES_ARRAY;
+
+    i = 0;                                                          //  Check Normalization layers
+    while(i < nn->normalLen && strcmp(nn->normlayers[i].name, name) != 0)
+      i++;
+    if(i < nn->normalLen)
+      return NORMAL_ARRAY;
 
     return UCHAR_MAX;
   }
@@ -3461,6 +2890,195 @@ void print_NN(NeuralNet* nn)
 
         printf("\n");
       }
+    for(i = 0; i < nn->poolLen; i++)                                //  Print all Pool layers
+      {
+        firstInline = true;
+        j = 0;
+        while(j < 9 && nn->poollayers[i].name[j] != '\0')
+          {
+            printf("%c", nn->poollayers[i].name[j]);
+            j++;
+          }
+        while(j < 9)
+          {
+            printf(" ");
+            j++;
+          }
+        printf("(Pool) ");
+
+        bufflen = sprintf(buffer, "%d", nn->poollayers[i].outlen);  //  Print output length
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        bufflen = sprintf(buffer, "0");                             //  Print number of parameters
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        for(k = 0; k < nn->len; k++)                                //  Print inputs to this layer
+          {
+            if(nn->edgelist[k].dstType == POOL_ARRAY && nn->edgelist[k].dstIndex == i)
+              {
+                if(!firstInline)
+                  printf("                                    ");
+                printLayerName(nn->edgelist[k].srcType, nn->edgelist[k].srcIndex, nn);
+                firstInline = false;
+              }
+          }
+        for(k = 0; k < nn->len; k++)                                //  Print outputs from this layer
+          {
+            if(nn->edgelist[k].srcType == POOL_ARRAY && nn->edgelist[k].srcIndex == i)
+              {
+                printf("                                               ");
+                printLayerName(nn->edgelist[k].dstType, nn->edgelist[k].dstIndex, nn);
+              }
+          }
+
+        printf("\n");
+      }
+    for(i = 0; i < nn->upresLen; i++)                               //  Print all Upres layers
+      {
+        firstInline = true;
+        j = 0;
+        while(j < 9 && nn->upreslayers[i].name[j] != '\0')
+          {
+            printf("%c", nn->upreslayers[i].name[j]);
+            j++;
+          }
+        while(j < 9)
+          {
+            printf(" ");
+            j++;
+          }
+        printf("(Upres)");
+                                                                    //  Print output length
+        bufflen = sprintf(buffer, "%d", outputLen_Upres(nn->upreslayers + i));
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        bufflen = sprintf(buffer, "0");                             //  Print number of parameters
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        for(k = 0; k < nn->len; k++)                                //  Print inputs to this layer
+          {
+            if(nn->edgelist[k].dstType == UPRES_ARRAY && nn->edgelist[k].dstIndex == i)
+              {
+                if(!firstInline)
+                  printf("                                    ");
+                printLayerName(nn->edgelist[k].srcType, nn->edgelist[k].srcIndex, nn);
+                firstInline = false;
+              }
+          }
+        for(k = 0; k < nn->len; k++)                                //  Print outputs from this layer
+          {
+            if(nn->edgelist[k].srcType == UPRES_ARRAY && nn->edgelist[k].srcIndex == i)
+              {
+                printf("                                               ");
+                printLayerName(nn->edgelist[k].dstType, nn->edgelist[k].dstIndex, nn);
+              }
+          }
+
+        printf("\n");
+      }
+    for(i = 0; i < nn->normalLen; i++)                              //  Print all Normalization layers
+      {
+        firstInline = true;
+        j = 0;
+        while(j < 9 && nn->normlayers[i].name[j] != '\0')
+          {
+            printf("%c", nn->normlayers[i].name[j]);
+            j++;
+          }
+        while(j < 9)
+          {
+            printf(" ");
+            j++;
+          }
+        printf("(Norm)");
+                                                                    //  Print output length
+        bufflen = sprintf(buffer, "%d", nn->normlayers[i].i);
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        bufflen = sprintf(buffer, "4");                             //  Print number of parameters
+        j = 0;
+        while(j < 10 && j < bufflen)
+          {
+            printf("%c", buffer[j]);
+            j++;
+          }
+        while(j < 10)
+          {
+            printf(" ");
+            j++;
+          }
+
+        for(k = 0; k < nn->len; k++)                                //  Print inputs to this layer
+          {
+            if(nn->edgelist[k].dstType == NORMAL_ARRAY && nn->edgelist[k].dstIndex == i)
+              {
+                if(!firstInline)
+                  printf("                                    ");
+                printLayerName(nn->edgelist[k].srcType, nn->edgelist[k].srcIndex, nn);
+                firstInline = false;
+              }
+          }
+        for(k = 0; k < nn->len; k++)                                //  Print outputs from this layer
+          {
+            if(nn->edgelist[k].srcType == NORMAL_ARRAY && nn->edgelist[k].srcIndex == i)
+              {
+                printf("                                               ");
+                printLayerName(nn->edgelist[k].dstType, nn->edgelist[k].dstIndex, nn);
+              }
+          }
+
+        printf("\n");
+      }
     printf("===========================================================\n");
     return;
   }
@@ -3508,9 +3126,1104 @@ void printLayerName(unsigned char arr, unsigned int index, NeuralNet* nn)
                                i++;
                              }
                            break;
+        case POOL_ARRAY:   i = 0;
+                           while(i < 9 && nn->poollayers[ index ].name[i] != '\0')
+                             {
+                               printf("%c", nn->poollayers[ index ].name[i]);
+                               i++;
+                             }
+                           break;
+        case UPRES_ARRAY:  i = 0;
+                           while(i < 9 && nn->upreslayers[ index ].name[i] != '\0')
+                             {
+                               printf("%c", nn->upreslayers[ index ].name[i]);
+                               i++;
+                             }
+                           break;
+        case NORMAL_ARRAY: i = 0;
+                           while(i < 9 && nn->normlayers[ index ].name[i] != '\0')
+                             {
+                               printf("%c", nn->normlayers[ index ].name[i]);
+                               i++;
+                             }
+                           break;
       }
     printf("\n");
     return;
+  }
+
+/**************************************************************************************************
+ Dense-Layers  */
+
+/* Add a layer to a network in progress.
+   It shall have 'inputs' inputs and 'nodes' nodes. */
+unsigned int add_Dense(unsigned int inputs, unsigned int nodes, NeuralNet* nn)
+  {
+    unsigned int i;
+
+    #ifdef __NEURON_DEBUG
+    printf("add_Dense(%d, %d)\n", inputs, nodes);
+    #endif
+
+    nn->denseLen++;
+    if(nn->denseLen == 1)                                           //  Expand the DenseLayer array
+      {
+        if((nn->denselayers = (DenseLayer*)malloc(sizeof(DenseLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate DenseLayer array\n");
+            exit(1);
+          }
+      }
+    else
+      {
+        if((nn->denselayers = (DenseLayer*)realloc(nn->denselayers, nn->denseLen * sizeof(DenseLayer))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate DenseLayer array\n");
+            exit(1);
+          }
+      }
+
+    nn->denselayers[nn->denseLen - 1].i = inputs;                   //  Set this newest layer's inputs
+    nn->denselayers[nn->denseLen - 1].n = nodes;                    //  Set this newest layer's number of nodes
+                                                                    //  Allocate this newest layer's weight matrix
+    if((nn->denselayers[nn->denseLen - 1].W = (double*)malloc((inputs + 1) * nodes * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate DenseLayer's weight array\n");
+        exit(1);
+      }
+                                                                    //  Allocate this newest layer's mask matrix
+    if((nn->denselayers[nn->denseLen - 1].M = (double*)malloc((inputs + 1) * nodes * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate DenseLayer's mask array\n");
+        exit(1);
+      }
+                                                                    //  Allocate this newest layer's function-flag array
+    if((nn->denselayers[nn->denseLen - 1].f = (unsigned char*)malloc(nodes * sizeof(char))) == NULL)
+      {
+        printf("ERROR: Unable to allocate DenseLayer's function-flag array\n");
+        exit(1);
+      }
+                                                                    //  Allocate this newest layer's function-parameter array
+    if((nn->denselayers[nn->denseLen - 1].alpha = (double*)malloc(nodes * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate DenseLayer's function-parameter array\n");
+        exit(1);
+      }
+                                                                    //  Allocate output buffer
+    if((nn->denselayers[nn->denseLen - 1].out = (double*)malloc(nodes * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate DenseLayer's internal output array\n");
+        exit(1);
+      }
+
+    for(i = 0; i < (inputs + 1) * nodes; i++)                       //  Generate random numbers in [ -1.0, 1.0 ]
+      {
+        nn->denselayers[nn->denseLen - 1].W[i] = -1.0 + ((double)rand() / ((double)RAND_MAX * 0.5));
+        nn->denselayers[nn->denseLen - 1].M[i] = 1.0;               //  All are UNmasked
+      }
+    for(i = 0; i < nodes; i++)                                      //  Default all to ReLU with parameter = 1.0
+      {
+        nn->denselayers[nn->denseLen - 1].f[i] = RELU;
+        nn->denselayers[nn->denseLen - 1].alpha[i] = 1.0;
+      }
+    for(i = 0; i < nodes; i++)                                      //  Blank out 'out' array
+      nn->denselayers[nn->denseLen - 1].out[i] = 0.0;
+    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
+      nn->denselayers[nn->denseLen - 1].name[i] = '\0';
+
+    return nn->denseLen;
+  }
+
+bool read_Dense(DenseLayer* denselayers, unsigned int denseLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
+    bool* boolBuffer = NULL;
+
+    unsigned int len;
+    unsigned int i, j;
+
+    for(i = 0; i < denseLen; i++)
+      {
+                                                                    //  Allocate 2 unsigned ints
+        if((uintBuffer = (unsigned int*)malloc(2 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer for reading from file\n");
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        if(fread(uintBuffer, sizeof(int), 2, fp) != 2)              //  Read 2 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read Dense Layer parameters into buffer\n");
+            free(uintBuffer);
+            return false;
+          }
+
+        denselayers[i].i = uintBuffer[0];                           //  Read number of inputs for DenseLayer[i] from buffer
+        denselayers[i].n = uintBuffer[1];                           //  Read number of units for DenseLayer[i] from buffer
+        #ifdef __NEURON_DEBUG
+        printf("  denselayers[%d].i = %d\n", i, denselayers[i].i);
+        printf("  denselayers[%d].n = %d\n", i, denselayers[i].n);
+        #endif
+
+        len = (denselayers[i].i + 1) * denselayers[i].n;
+        if((denselayers[i].W = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array while reading DenseLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((denselayers[i].M = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate mask array while reading DenseLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((denselayers[i].out = (double*)malloc(denselayers[i].n * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading DenseLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        for(j = 0; j < denselayers[i].n; j++)                       //  Allocate and blank out output array
+          denselayers[i].out[j] = 0.0;
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read Dense Layer weights into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read DenseLayer[i]'s weights from buffer
+          denselayers[i].W[j] = doubleBuffer[j];                    //  in the order in which they exist in the file.
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  denselayers[%d].W[%d] = %.6f\n", i, j, denselayers[i].W[j]);
+        #endif
+
+        if((boolBuffer = (bool*)malloc(len * sizeof(bool))) == NULL)
+          {
+            printf("ERROR: Unable to allocate Boolean buffer while reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        if(fread(boolBuffer, sizeof(bool), len, fp) != len)         //  Read 'len' objects of size bool into buffer
+          {
+            printf("ERROR: Unable to read Dense Layer masks into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read DenseLayer[i]'s weights from buffer
+          {
+            if(boolBuffer[j])                                       //  True means UNMASKED, means w * 1.0
+              denselayers[i].M[j] = 1.0;
+            else                                                    //  False means MASKED, means w * 0.0
+              denselayers[i].M[j] = 0.0;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  denselayers[%d].M[%d] = %.6f\n", i, j, denselayers[i].M[j]);
+        #endif
+
+        len = denselayers[i].n;
+        if((denselayers[i].f = (unsigned char*)malloc(len * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate function flag array for DenseLayer[%d] while reading from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(len * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> denselayers[i].n
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        if(fread(ucharBuffer, sizeof(char), len, fp) != len)        //  Read 'len' objects of size char into buffer
+          {
+            printf("ERROR: Unable to read Dense Layer function flags into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read function flags
+          denselayers[i].f[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  denselayers[%d].f[%d] = %d\n", i, j, denselayers[i].f[j]);
+        #endif
+
+        if((denselayers[i].alpha = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate function auxiliaries array for DenseLayer[%d] while reading from file\n", i);
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to reallocate double buffer for reading from file\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> denselayers[i].n
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read Dense Layer alphas into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read function auxiliaries
+          denselayers[i].alpha[j] = doubleBuffer[j];
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  denselayers[%d].alpha[%d] = %.6f\n", i, j, denselayers[i].alpha[j]);
+        #endif
+
+        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to reallocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  Read LAYER_NAME_LEN objects of size char to buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Dense Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read layer name
+          denselayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  denselayers[%d].name = %s\n\n", i, denselayers[i].name);
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
+        free(boolBuffer);                                           //  boolBuffer   --> 0
+      }
+
+    return true;
+  }
+
+bool write_Dense(DenseLayer* denselayers, unsigned int denseLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
+    bool* boolBuffer = NULL;
+
+    unsigned int len;
+    unsigned int i, j;
+
+    for(i = 0; i < denseLen; i++)
+      {
+                                                                    //  Allocate 2 unsigned ints
+        if((uintBuffer = (unsigned int*)malloc(2 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer for writing to file\n");
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        uintBuffer[0] = denselayers[i].i;                           //  Write number of inputs for DenseLayer[i] to buffer
+        uintBuffer[1] = denselayers[i].n;                           //  Write number of units for DenseLayer[i] to buffer
+        if(fwrite(uintBuffer, sizeof(int), 2, fp) != 2)             //  From buffer, write 2 objects of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  uintBuffer[0] = denselayers[%d].i = %d\n", i, uintBuffer[0]);
+        printf("  uintBuffer[1] = denselayers[%d].n = %d\n", i, uintBuffer[1]);
+        #endif
+
+        len = (denselayers[i].i + 1) * denselayers[i].n;
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer while writing DenseLayer[%d] to file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((boolBuffer = (bool*)malloc(len * sizeof(bool))) == NULL)
+          {
+            printf("ERROR: Unable to allocate boolean buffer while writing DenseLayer[%d] to file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        for(j = 0; j < len; j++)                                    //  Copy weight array to buffer
+          {
+            doubleBuffer[j] = denselayers[i].W[j];
+            if(denselayers[i].M[j] == 1.0)
+              boolBuffer[j] = true;
+            else
+              boolBuffer[j] = false;
+          }
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        if(fwrite(boolBuffer, sizeof(bool), len, fp) != len)        //  From buffer, write 'len' objects of size bool
+          {
+            printf("ERROR: Unable to write bool buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  doubleBuffer[%d] = denselayers[%d].W[%d] = %.6f\n", j, i, j, doubleBuffer[j]);
+        for(j = 0; j < len; j++)
+          {
+            if(boolBuffer[j])
+              printf("  boolBuffer[%d] = denselayers[%d].M[%d] = 1\n", j, i, j);
+            else
+              printf("  boolBuffer[%d] = denselayers[%d].M[%d] = 0\n", j, i, j);
+          }
+        #endif
+
+        len = denselayers[i].n;
+        if((ucharBuffer = (unsigned char*)malloc(len * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for writing to file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> denselayers[i].n
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> (denselayers[i].i + 1) * denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        for(j = 0; j < len; j++)                                    //  Copy flag array to buffer
+          ucharBuffer[j] = denselayers[i].f[j];
+        if(fwrite(ucharBuffer, sizeof(char), len, fp) != len)       //  From buffer, write 'len' objects of size char
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  ucharBuffer[%d] = denselayers[%d].f[%d] = %d\n", j, i, j, ucharBuffer[j]);
+        #endif
+
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate double buffer for writing to file\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> denselayers[i].n
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        for(j = 0; j < len; j++)                                    //  Copy parameter array to buffer
+          doubleBuffer[j] = denselayers[i].alpha[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  doubleBuffer[%d] = denselayers[%d].alpha[%d] = %.6f\n", j, i, j, doubleBuffer[j]);
+        #endif
+
+        if((ucharBuffer = (unsigned char*)realloc(ucharBuffer, LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate unsigned char buffer for writing to file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 2
+                                                                    //  doubleBuffer --> denselayers[i].n
+                                                                    //  boolBuffer   --> (denselayers[i].i + 1) * denselayers[i].n
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Copy layer name to buffer
+          ucharBuffer[j] = denselayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            free(boolBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  ucharBuffer = denselayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
+        free(boolBuffer);                                           //  boolBuffer   --> 0
+      }
+
+    return true;
+  }
+
+/**************************************************************************************************
+ 2D-Convolutional-Layers  */
+
+/* Add a Conv2DLayer to a network in progress.
+   It shall have an 'inputW' by 'inputH' input matrix.
+   Note that this function DOES NOT, itself, allocate any filters! */
+unsigned int add_Conv2D(unsigned int inputW, unsigned int inputH, NeuralNet* nn)
+  {
+    unsigned char i;
+
+    #ifdef __NEURON_DEBUG
+    printf("add_Conv2D(%d, %d)\n", inputW, inputH);
+    #endif
+
+    nn->convLen++;
+    if(nn->convLen == 1)                                            //  Expand the Conv2DLayer array
+      {
+        if((nn->convlayers = (Conv2DLayer*)malloc(sizeof(Conv2DLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate Conv2DLayer array\n");
+            exit(1);
+          }
+      }
+    else
+      {
+        if((nn->convlayers = (Conv2DLayer*)realloc(nn->convlayers, nn->convLen * sizeof(Conv2DLayer))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate Conv2DLayer array\n");
+            exit(1);
+          }
+      }
+
+    nn->convlayers[nn->convLen - 1].inputW = inputW;                //  Set this newest layer's input dimensions
+    nn->convlayers[nn->convLen - 1].inputH = inputH;
+    nn->convlayers[nn->convLen - 1].n = 0;                          //  New layer initially contains zero filters
+    nn->convlayers[nn->convLen - 1].outlen = 0;                     //  An empty layer has zero output
+    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
+      nn->convlayers[nn->convLen - 1].name[i] = '\0';
+
+    return nn->convLen;
+  }
+
+bool read_Conv2D(Conv2DLayer* convlayers, unsigned int convLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
+
+    unsigned int len;
+    unsigned int i, j, k;
+
+    for(i = 0; i < convLen; i++)
+      {
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int array while reading from file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read Convolution Layer parameters into buffer");
+            free(uintBuffer);
+            free(ucharBuffer);
+            return false;
+          }
+        convlayers[i].inputW = uintBuffer[0];                       //  Read Conv2DLayer input width from buffer
+        convlayers[i].inputH = uintBuffer[1];                       //  Read Conv2DLayer input height from buffer
+        convlayers[i].n = uintBuffer[2];                            //  Read number of Conv2DLayer filters from buffer
+        #ifdef __NEURON_DEBUG
+        printf("  convlayers[%d].inputW = %d\n", i, convlayers[i].inputW);
+        printf("  convlayers[%d].inputH = %d\n", i, convlayers[i].inputH);
+        printf("  convlayers[%d].n      = %d\n", i, convlayers[i].n);
+        #endif
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Convolution Layer name into buffer");
+            free(uintBuffer);
+            free(ucharBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read layer name
+          convlayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  convlayers[%d].name = %s\n", i, convlayers[i].name);
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+                                                                    //  doubleBuffer --> 0
+
+                                                                    //  Allocate 'n' filters
+        if((convlayers[i].filters = (Filter2D*)malloc(convlayers[i].n * sizeof(Filter2D))) == NULL)
+          {
+            printf("ERROR: Unable to allocate filter array for Conv2DLayer[%d] while reading from file\n", i);
+            return false;
+          }
+        for(j = 0; j < convlayers[i].n; j++)                        //  Fill in details of each filter in this layer
+          {
+                                                                    //  Filters need to read 4 ints (w, h, stride_h, stride_v);
+                                                                    //                       1 uchar (f);
+                                                                    //                       1 double (alpha);
+                                                                    //                       w * h + 1 doubles (W)
+            if((ucharBuffer = (unsigned char*)malloc(sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while reading from file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+                free(ucharBuffer);
+                return false;
+              }
+            if((doubleBuffer = (double*)malloc(sizeof(double))) == NULL)
+              {
+                printf("ERROR: Unable to allocate double buffer while reading from file\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> 1
+            if(fread(uintBuffer, sizeof(int), 4, fp) != 4)          //  Read 4 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read dimensions and strides for Convolution Layer filter[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            convlayers[i].filters[j].w = uintBuffer[0];             //  Read dimensions and strides
+            convlayers[i].filters[j].h = uintBuffer[1];
+            convlayers[i].filters[j].stride_h = uintBuffer[2];
+            convlayers[i].filters[j].stride_v = uintBuffer[3];
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].w = %d\n", i, j, convlayers[i].filters[j].w);
+            printf("  convlayers[%d].filters[%d].h = %d\n", i, j, convlayers[i].filters[j].h);
+            printf("  convlayers[%d].filters[%d].stride_h = %d\n", i, j, convlayers[i].filters[j].stride_h);
+            printf("  convlayers[%d].filters[%d].stride_v = %d\n", i, j, convlayers[i].filters[j].stride_v);
+            #endif
+
+            if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)        //  Read 1 object of size char into buffer
+              {
+                printf("ERROR: Unable to read activation function flag for Convolution Layer filter[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            convlayers[i].filters[j].f = ucharBuffer[0];
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].f = %d\n", i, j, convlayers[i].filters[j].f);
+            #endif
+
+            if(fread(doubleBuffer, sizeof(double), 1, fp) != 1)     //  Read 1 object of size double into buffer
+              {
+                printf("ERROR: Unable to read activation function parameter for Convolution Layer filter[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            convlayers[i].filters[j].alpha = doubleBuffer[0];
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].alpha = %.6f\n", i, j, convlayers[i].filters[j].alpha);
+            #endif
+
+            free(doubleBuffer);                                     //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> 0
+
+            len = convlayers[i].filters[j].w * convlayers[i].filters[j].h + 1;
+            if((convlayers[i].filters[j].W = (double*)malloc(len * sizeof(double))) == NULL)
+              {
+                printf("ERROR: Unable to allocate filter[%d] of Conv2DLayer[%d] while reading from file\n", j, i);
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+              {
+                printf("ERROR: Unable to allocate double buffer for reading from file\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> convlayers[i].filters[j].w * convlayers[i].filters[j].h + 1
+            if(fread(doubleBuffer, sizeof(double), len, fp) != len) //  Read len objects of size double into buffer
+              {
+                printf("ERROR: Unable to read weights for Convolution Layer filter %d into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            for(k = 0; k < len; k++)                                //  Read Filter2D weights and bias
+              convlayers[i].filters[j].W[k] = doubleBuffer[k];
+            #ifdef __NEURON_DEBUG
+            printf("  ");
+            for(k = 0; k < len; k++)
+              printf("  %.3f", convlayers[i].filters[j].W[k]);
+            printf("\n");
+            #endif
+
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+            free(doubleBuffer);                                     //  doubleBuffer --> 0
+          }
+
+        convlayers[i].outlen = outputLen_Conv2D(convlayers + i);    //  Compute layer's output length; allocate and blank its output buffer
+        if((convlayers[i].out = (double*)malloc(convlayers[i].outlen * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading Conv2DLayer[%d] from file\n", i);
+            return false;
+          }
+        for(j = 0; j < convlayers[i].outlen; j++)                   //  Allocate and blank out output array
+          convlayers[i].out[j] = 0.0;
+      }
+
+    return true;
+  }
+
+bool write_Conv2D(Conv2DLayer* convlayers, unsigned int convLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
+
+    unsigned int len;
+    unsigned int i, j, k;
+
+    for(i = 0; i < convLen; i++)
+      {
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int array while reading from file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+        uintBuffer[0] = convlayers[i].inputW;                       //  Write the input dimensions for Conv2DLayer[i] to buffer
+        uintBuffer[1] = convlayers[i].inputH;
+        uintBuffer[2] = convlayers[i].n;
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  convlayers[%d].inputW = %d\n", i, uintBuffer[0]);
+        printf("  convlayers[%d].inputH = %d\n", i, uintBuffer[1]);
+        printf("  convlayers[%d].n = %d\n", i, uintBuffer[2]);
+        #endif
+
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name to the buffer
+          ucharBuffer[j] = convlayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  convlayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+                                                                    //  doubleBuffer --> 0
+
+        for(j = 0; j < convlayers[i].n; j++)                        //  Fill in details of each filter in this layer
+          {
+                                                                    //  Filters need to read 4 ints (w, h, stride_h, stride_v);
+                                                                    //                       1 uchar (f);
+                                                                    //                       1 double (alpha);
+                                                                    //                       w * h + 1 doubles (W)
+            if((ucharBuffer = (unsigned char*)malloc(sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while reading from file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+                return false;
+              }
+            if((doubleBuffer = (double*)malloc(sizeof(double))) == NULL)
+              {
+                printf("ERROR: Unable to allocate double buffer while reading from file\n");
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> 1
+            uintBuffer[0] = convlayers[i].filters[j].w;             //  Write dimensions and strides to buffer
+            uintBuffer[1] = convlayers[i].filters[j].h;
+            uintBuffer[2] = convlayers[i].filters[j].stride_h;
+            uintBuffer[3] = convlayers[i].filters[j].stride_v;
+            if(fwrite(uintBuffer, sizeof(int), 4, fp) != 4)         //  From buffer, write 4 objects of size int
+              {
+                printf("ERROR: Unable to write unsigned int buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].w = %d\n", i, j, uintBuffer[0]);
+            printf("  convlayers[%d].filters[%d].h = %d\n", i, j, uintBuffer[1]);
+            printf("  convlayers[%d].filters[%d].stride_h = %d\n", i, j, uintBuffer[2]);
+            printf("  convlayers[%d].filters[%d].stride_v = %d\n", i, j, uintBuffer[3]);
+            #endif
+
+            ucharBuffer[0] = convlayers[i].filters[j].f;            //  Write filter function flag to buffer
+            if(fwrite(ucharBuffer, sizeof(char), 1, fp) != 1)       //  From buffer, write 1 object of size char
+              {
+                printf("ERROR: Unable to write unsigned char buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].f = %d\n", i, j, ucharBuffer[0]);
+            #endif
+
+            doubleBuffer[0] = convlayers[i].filters[j].alpha;       //  Write filter function parameter to buffer
+            if(fwrite(doubleBuffer, sizeof(double), 1, fp) != 1)    //  From buffer, write 1 object of size double
+              {
+                printf("ERROR: Unable to write double buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  convlayers[%d].filters[%d].alpha = %.6f\n", i, j, doubleBuffer[0]);
+            #endif
+
+            free(doubleBuffer);                                     //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> 0
+
+            len = convlayers[i].filters[j].w * convlayers[i].filters[j].h + 1;
+            if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+              {
+                printf("ERROR: Unable to allocate double buffer for reading from file\n");
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> convlayers[i].filters[j].w * convlayers[i].filters[j].h + 1
+            for(k = 0; k < len; k++)                                //  Read Filter2D weights and bias
+              doubleBuffer[k] = convlayers[i].filters[j].W[k];
+            if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)//  From buffer, write 'len' objects of size double
+              {
+                printf("ERROR: Unable to write double buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                free(doubleBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  ");
+            for(k = 0; k < len; k++)
+              printf("  %.3f", doubleBuffer[k]);
+            printf("\n");
+            #endif
+
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+            free(doubleBuffer);                                     //  doubleBuffer --> 0
+          }
+      }
+
+    return true;
+  }
+
+/**************************************************************************************************
+ Accumulator-Layers  */
+
+unsigned int add_Accum(unsigned int inputs, NeuralNet* nn)
+  {
+    unsigned int i;
+
+    #ifdef __NEURON_DEBUG
+    printf("add_Accum(%d)\n", inputs);
+    #endif
+
+    nn->accumLen++;
+
+    if(nn->accumLen == 1)                                           //  Expand the AccumLayer array
+      {
+        if((nn->accumlayers = (AccumLayer*)malloc(sizeof(AccumLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate AccumLayer array\n");
+            exit(1);
+          }
+      }
+    else
+      {
+        if((nn->accumlayers = (AccumLayer*)realloc(nn->accumlayers, nn->accumLen * sizeof(AccumLayer))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate AccumLayer array\n");
+            exit(1);
+          }
+      }
+    nn->accumlayers[nn->accumLen - 1].i = inputs;
+                                                                    //  Allocate output buffer
+    if((nn->accumlayers[nn->accumLen - 1].out = (double*)malloc(inputs * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate AccumLayer's internal output array\n");
+        exit(1);
+      }
+    for(i = 0; i < inputs; i++)                                     //  Blank out 'out' array
+      nn->accumlayers[nn->accumLen - 1].out[i] = 0.0;
+    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
+      nn->accumlayers[nn->accumLen - 1].name[i] = '\0';
+
+    return nn->accumLen;
+  }
+
+bool read_Accum(AccumLayer* accumlayers, unsigned int accumLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < accumLen; i++)
+      {
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            exit(1);
+          }
+        if((uintBuffer = (unsigned int*)malloc(sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer for reading from file\n");
+            exit(1);
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 1
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        if(fread(uintBuffer, sizeof(int), 1, fp) != 1)              //  Read 1 object of size int into buffer
+          {
+            printf("ERROR: Unable to read Accumulation Layer parameter into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        accumlayers[i].i = uintBuffer[0];                           //  Read number of Accumulator inputs
+        #ifdef __NEURON_DEBUG
+        printf("  accumlayers[%d].i = %d\n", i, accumlayers[i].i);
+        #endif
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Accumulation Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read Accumulator layer name
+          accumlayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  accumlayers[%d].name = %s\n", i, accumlayers[i].name);
+        #endif
+
+        if((accumlayers[i].out = (double*)malloc(accumlayers[i].i * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading AccumLayer[%d] from file\n", i);
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        for(j = 0; j < accumlayers[i].i; j++)                       //  Allocate and blank out output array
+          accumlayers[i].out[j] = 0.0;
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+      }
+
+    return true;
+  }
+
+bool write_Accum(AccumLayer* accumlayers, unsigned int accumLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < accumLen; i++)
+      {
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            return false;
+          }
+        if((uintBuffer = (unsigned int*)malloc(sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer for reading from file\n");
+            free(ucharBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 1
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        uintBuffer[0] = accumlayers[i].i;                           //  Copy number of Accumulator inputs to buffer
+        if(fwrite(uintBuffer, sizeof(int), 1, fp) != 1)             //  From buffer, write 1 object of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  accumlayers[%d].i = %d\n", i, uintBuffer[0]);
+        #endif
+
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name to the buffer
+          ucharBuffer[j] = accumlayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  accumlayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+      }
+
+    return true;
   }
 
 /**************************************************************************************************
@@ -3656,537 +4369,591 @@ unsigned int add_LSTM(unsigned int dimInput, unsigned int dimState, unsigned int
     return nn->lstmLen;
   }
 
-/* Set the entirety of the Wi matrix of the given layer using the given array */
-void setWi_LSTM(double* w, LSTMLayer* layer)
+bool read_LSTM(LSTMLayer* lstmlayers, unsigned int lstmLen, FILE* fp)
   {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wi[i] = w[i];
-    return;
-  }
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-/* Set the entirety of the Wo matrix of the given layer using the given array */
-void setWo_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wo[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Wf matrix of the given layer using the given array */
-void setWf_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wf[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Wc matrix of the given layer using the given array */
-void setWc_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wc[i] = w[i];
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wi matrix */
-void setWi_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWi_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wi[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wo matrix */
-void setWo_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWo_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wo[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wf matrix */
-void setWf_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWf_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wf[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wc matrix */
-void setWc_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWc_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wc[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set the entirety of the Ui matrix of the given layer using the given array */
-void setUi_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Ui[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Uo matrix of the given layer using the given array */
-void setUo_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Uo[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Uf matrix of the given layer using the given array */
-void setUf_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Uf[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Uc matrix of the given layer using the given array */
-void setUc_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Uc[i] = w[i];
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Ui matrix */
-void setUi_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUi_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Ui[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Uo matrix */
-void setUo_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUo_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uo[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Uf matrix */
-void setUf_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUf_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uf[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Uc matrix */
-void setUc_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUc_ij_LSTM(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uc[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set the entirety of the bi vector of the given layer using the given array */
-void setbi_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bi[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the bo vector of the given layer using the given array */
-void setbo_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bo[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the bf vector of the given layer using the given array */
-void setbf_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bf[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the bc vector of the given layer using the given array */
-void setbc_LSTM(double* w, LSTMLayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bc[i] = w[i];
-    return;
-  }
-
-/* Set element [i] of the given layer, bi vector */
-void setbi_i_LSTM(double w, unsigned int i, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbi_i_LSTM(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bi[i] = w;
-    return;
-  }
-
-/* Set element [i] of the given layer, bo vector */
-void setbo_i_LSTM(double w, unsigned int i, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbo_i_LSTM(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bo[i] = w;
-    return;
-  }
-
-/* Set element [i] of the given layer, bf vector */
-void setbf_i_LSTM(double w, unsigned int i, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbf_i_LSTM(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bf[i] = w;
-    return;
-  }
-
-/* Set element [i] of the given layer, bc vector */
-void setbc_i_LSTM(double w, unsigned int i, LSTMLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbc_i_LSTM(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bc[i] = w;
-    return;
-  }
-
-void setName_LSTM(char* n, LSTMLayer* layer)
-  {
-    unsigned char i;
-    unsigned char lim;
-    lim = (strlen(n) < LAYER_NAME_LEN) ? strlen(n) : LAYER_NAME_LEN;
-    for(i = 0; i < lim; i++)
-      layer->name[i] = n[i];
-    layer->name[i] = '\0';
-    return;
-  }
-
-/* Print the details of the given LSTMLayer 'layer' */
-void print_LSTM(LSTMLayer* layer)
-  {
+    unsigned int len;
     unsigned int i, j;
 
-    #ifdef __NEURON_DEBUG
-    printf("print_LSTM()\n");
-    #endif
+    for(i = 0; i < lstmLen; i++)
+      {
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read LSTM parameters into buffer\n");
+            free(uintBuffer);
+            return false;
+          }
+        lstmlayers[i].d = uintBuffer[0];                            //  Read input dimensionality for LSTMLayer[i] from buffer
+        lstmlayers[i].h = uintBuffer[1];                            //  Read state dimensionality for LSTMLayer[i] from buffer
+        lstmlayers[i].cache = uintBuffer[2];                        //  Read state cache size for LSTMLayer[i] from buffer
+        lstmlayers[i].t = 0;                                        //  Initialize time step to 0
+        #ifdef __NEURON_DEBUG
+        printf("  lstmlayers[%d].d = %d\n", i, lstmlayers[i].d);
+        printf("  lstmlayers[%d].h = %d\n", i, lstmlayers[i].h);
+        printf("  lstmlayers[%d].cache = %d\n", i, lstmlayers[i].cache);
+        #endif
 
-    printf("Input dimensionality d = %d\n", layer->d);
-    printf("State dimensionality h = %d\n", layer->h);
-    printf("State cache size       = %d\n", layer->cache);
+        len = lstmlayers[i].d * lstmlayers[i].h;                    //  Allocate all things d*h
+        if((lstmlayers[i].Wi = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wi while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Wo = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wo while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Wf = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wf while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Wc = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wc while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].d * lstmlayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Wi into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Wi weights from buffer
+          lstmlayers[i].Wi[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Wo into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Wo weights from buffer
+          lstmlayers[i].Wo[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Wf into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Wf weights from buffer
+          lstmlayers[i].Wf[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Wc into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Wc weights from buffer
+          lstmlayers[i].Wc[j] = doubleBuffer[j];
 
-    printf("Wi (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wi[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Wf (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wf[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Wc (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wc[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Wo (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wo[i * layer->h + j]);
-        printf(" ]\n");
+        len = lstmlayers[i].h * lstmlayers[i].h;                    //  Allocate all things h*h
+        if((lstmlayers[i].Ui = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Ui while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Uo = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Uo while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Uf = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Uf while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].Uc = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Uc while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].h * lstmlayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Ui into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Ui weights from buffer
+          lstmlayers[i].Ui[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Uo into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Uo weights from buffer
+          lstmlayers[i].Uo[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Uf into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Uf weights from buffer
+          lstmlayers[i].Uf[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM Uc into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s Uc weights from buffer
+          lstmlayers[i].Uc[j] = doubleBuffer[j];
+
+        len = lstmlayers[i].h;                                      //  Allocate all things h
+        if((lstmlayers[i].bi = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bi while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].bo = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bo while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].bf = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bf while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].bc = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bc while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((lstmlayers[i].c = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate cell array while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to reallocate double buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM bi into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s bi bias from buffer
+          lstmlayers[i].bi[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM bo into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s bo bias from buffer
+          lstmlayers[i].bo[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM bf into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s bf bias from buffer
+          lstmlayers[i].bf[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read LSTM bc into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read LSTMLayer[i]'s bc bias from buffer
+          lstmlayers[i].bc[j] = doubleBuffer[j];
+        for(j = 0; j < len; j++)                                    //  Set vector c to zero-vector
+          lstmlayers[i].c[j] = 0.0;
+
+        len = lstmlayers[i].h * lstmlayers[i].cache;                //  Allocate the output/state cache
+        if((lstmlayers[i].H = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate state cache while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                //  Blank out output matrix
+          lstmlayers[i].H[j] = 0.0;
+
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].h
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read LSTM Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read layer name
+          lstmlayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  lstmlayers[%d].name = %s\n", i, lstmlayers[i].name);
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
       }
 
-    printf("Ui (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Ui[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Uf (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Uf[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Uc (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Uc[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Uo (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Uo[i * layer->h + j]);
-        printf(" ]\n");
-      }
-
-    printf("bi (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bi[i]);
-    printf("bf (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bf[i]);
-    printf("bc (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bc[i]);
-    printf("bo (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bo[i]);
-
-    return;
+    return true;
   }
 
-unsigned int outputLen_LSTM(LSTMLayer* layer)
+bool write_LSTM(LSTMLayer* lstmlayers, unsigned int lstmLen, FILE* fp)
   {
-    return layer->h;
-  }
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-/* Run the given input vector 'x' of length 'layer'->'d' through the LSTMLayer 'layer'.
-   Output is stored internally in layer->H.
-   Write to the 'layer'->'t'-th column and increment t.
-   If 'layer'->'t' exceeds 'layer'->'cache', shift everything down. */
-unsigned int run_LSTM(double* x, LSTMLayer* layer)
-  {
-    unsigned int n, m;
-    double* i;
-    double* f;
-    double* c;                                                      //  Time t
-    double* o;
-    double* ct_1;                                                   //  Time t - 1
-    double* ht_1;                                                   //  Time t - 1
-    unsigned int t_1;                                               //  Where we READ FROM
-    unsigned int t;                                                 //  Where we WRITE TO
-                                                                    //  layer->t increases indefinitely
-    enum CBLAS_ORDER order;
-    enum CBLAS_TRANSPOSE transa;
+    unsigned int len;
+    unsigned int i, j;
 
-    #ifdef __NEURON_DEBUG
-    printf("run_LSTM(%d)\n", layer->h);
-    #endif
-
-    order = CblasColMajor;
-    transa = CblasTrans;
-
-    if((i = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{i}
+    for(i = 0; i < lstmLen; i++)
       {
-        printf("ERROR: Unable to allocate LSTM vector i\n");
-        exit(1);
-      }
-    if((f = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{f}
-      {
-        printf("ERROR: Unable to allocate LSTM vector f\n");
-        exit(1);
-      }
-    if((c = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{c}
-      {
-        printf("ERROR: Unable to allocate LSTM vector c\n");
-        exit(1);
-      }
-    if((o = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{o}
-      {
-        printf("ERROR: Unable to allocate LSTM vector o\n");
-        exit(1);
-      }
-    if((ht_1 = (double*)malloc(layer->h * sizeof(double))) == NULL) //  Allocate vec{ht_1}
-      {
-        printf("ERROR: Unable to allocate LSTM vector ht_1\n");
-        exit(1);
-      }
-    if((ct_1 = (double*)malloc(layer->h * sizeof(double))) == NULL) //  Allocate vec{ct_1}
-      {
-        printf("ERROR: Unable to allocate LSTM vector ct_1\n");
-        exit(1);
-      }
-
-    if(layer->t == 0)                                               //  Timestep layer->t = 0 uses the zero-vectors for t - 1
-      {
-        t_1 = 0;
-        t = 0;
-        for(n = 0; n < layer->h; n++)                               //  Write zeroes to h(t-1) and c(t-1)
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
           {
-            ht_1[n] = 0.0;
-            ct_1[n] = 0.0;
+            printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+            return false;
           }
-      }
-    else                                                            //  Timestep t > 0 uses the previous state
-      {                                                             //  Consider that we may have shifted states
-        if(layer->t >= layer->cache)                                //  out of the matrix
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+        uintBuffer[0] = lstmlayers[i].d;                            //  Copy input dimensionality for LSTMLayer[i] to buffer
+        uintBuffer[1] = lstmlayers[i].h;                            //  Copy state dimensionality for LSTMLayer[i] to buffer
+        uintBuffer[2] = lstmlayers[i].cache;                        //  Copy state cache size for LSTMLayer[i] to buffer
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
           {
-            t_1 = layer->cache - 1;                                 //  Read from the rightmost column
-                                                                    //  (then shift everything left)
-            t = layer->cache - 1;                                   //  Write to the rightmost column
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(uintBuffer);
+            return false;
           }
-        else                                                        //  We've not yet maxed out cache
+        #ifdef __NEURON_DEBUG
+        printf("  lstmlayers[%d].d = %d\n", i, uintBuffer[0]);
+        printf("  lstmlayers[%d].h = %d\n", i, uintBuffer[1]);
+        printf("  lstmlayers[%d].cache = %d\n", i, uintBuffer[2]);
+        #endif
+
+        len = lstmlayers[i].d * lstmlayers[i].h;                    //  Allocate all things d*h
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
           {
-            t_1 = layer->t - 1;                                     //  Read from the previous column
-            t = layer->t;                                           //  Write to the targeted column
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
           }
-        for(n = 0; n < layer->h; n++)
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].d * lstmlayers[i].h
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Wi[j];                    //  Copy Wi to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+        #ifdef __NEURON_DEBUG
           {
-            ht_1[n] = layer->H[ t_1 * layer->h + n ];
-            ct_1[n] = layer->c[n];
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Wi[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
 
-    for(n = 0; n < layer->h; n++)                                   //  Write biases to vectors
-      {
-        i[n] = layer->bi[n];
-        f[n] = layer->bf[n];
-        c[n] = layer->bc[n];
-        o[n] = layer->bo[n];
-      }
-                                                                    //  Add Ui dot ht_1 to i
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Ui, layer->h, ht_1, 1, 1.0, i, 1);
-                                                                    //  Add Uf dot ht_1 to f
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uf, layer->h, ht_1, 1, 1.0, f, 1);
-                                                                    //  Add Uc dot ht_1 to c
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uc, layer->h, ht_1, 1, 1.0, c, 1);
-                                                                    //  Add Uo dot ht_1 to o
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uo, layer->h, ht_1, 1, 1.0, o, 1);
-
-    if(layer->d == 1)
-      {
-        for(n = 0; n < layer->h; n++)
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Wo[j];                    //  Copy Wo to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            i[n] += layer->Wi[n] * x[0];                            //  Add Wi dot x to i
-            f[n] += layer->Wf[n] * x[0];                            //  Add Wf dot x to f
-            c[n] += layer->Wc[n] * x[0];                            //  Add Wc dot x to c
-            o[n] += layer->Wo[n] * x[0];                            //  Add Wo dot x to o
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
-    else
-      {
-                                                                    //  Add Wi dot x to i
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wi, layer->h, x, 1, 1.0, i, 1);
-                                                                    //  Add Wf dot x to f
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wf, layer->h, x, 1, 1.0, f, 1);
-                                                                    //  Add Wc dot x to c
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wc, layer->h, x, 1, 1.0, c, 1);
-                                                                    //  Add Wo dot x to o
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wo, layer->h, x, 1, 1.0, o, 1);
-      }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Wo[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
 
-    //  We have allocated h-by-cache space for 'H', but the structure and routine should not crash if
-    //  we write more than 'cache' states. Shift everything down one column and write to the end.
-    if(layer->t >= layer->cache)
-      {
-        for(m = 1; m < layer->cache; m++)                           //  Shift down
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Wf[j];                    //  Copy Wf to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            for(n = 0; n < layer->h; n++)
-              layer->H[(m - 1) * layer->h + n] = layer->H[m * layer->h + n];
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Wf[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Wc[j];                    //  Copy Wc to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Wc[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        len = lstmlayers[i].h * lstmlayers[i].h;                    //  Allocate all things h*h
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].h * lstmlayers[i].h
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Ui[j];                    //  Copy Ui to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Ui[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Uo[j];                    //  Copy Uo to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Uo[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Uf[j];                    //  Copy Uf to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Uf[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].Uc[j];                    //  Copy Uc to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].Uc[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        len = lstmlayers[i].h;                                      //  Allocate all things h
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> lstmlayers[i].h
+                                                                    //  boolBuffer   --> 0
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].bi[j];                    //  Copy bi to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].bi[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].bo[j];                    //  Copy bo to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].bo[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].bf[j];                    //  Copy bf to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].bf[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = lstmlayers[i].bc[j];                    //  Copy bc to buffer
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  lstmlayers[%d].bc[%d] = %.4f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> nn->lstmlayers[i].h
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name to the buffer
+          ucharBuffer[j] = lstmlayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  lstmlayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
       }
 
-    for(n = 0; n < layer->h; n++)
-      {
-        i[n] = 1.0 / (1.0 + pow(M_E, -i[n]));                       //  i = sig(Wi*x + Ui*ht_1 + bi)
-        f[n] = 1.0 / (1.0 + pow(M_E, -f[n]));                       //  f = sig(Wf*x + Uf*ht_1 + bf)
-                                                                    //  c = f*ct_1 + i*tanh(Wc*x + Uc*ht_1 + bc)
-        layer->c[n] = f[n] * ct_1[n] + i[n] * ((2.0 / (1.0 + pow(M_E, -2.0 * c[n]))) - 1.0);
-        o[n] = 1.0 / (1.0 + pow(M_E, -o[n]));                       //  o = sig(Wo*x + Uo*ht_1 + bo)
-                                                                    //  h = o*tanh(c)
-        layer->H[ t * layer->h + n ] = o[n] * ((2.0 / (1.0 + pow(M_E, -2.0 * layer->c[n]))) - 1.0);
-      }
-
-    free(i);
-    free(f);
-    free(c);
-    free(o);
-    free(ct_1);
-    free(ht_1);
-
-    layer->t++;                                                     //  Increment time step
-
-    return layer->h;                                                //  Return the size of the state
-  }
-
-void reset_LSTM(LSTMLayer* layer)
-  {
-    unsigned int i;
-    layer->t = 0;
-    for(i = 0; i < layer->h; i++)
-      layer->c[i] = 0.0;
-    for(i = 0; i < layer->h * layer->cache; i++)
-      layer->H[i] = 0.0;
-    return;
+    return true;
   }
 
 /**************************************************************************************************
@@ -4306,1219 +5073,1291 @@ unsigned int add_GRU(unsigned int dimInput, unsigned int dimState, unsigned int 
     return nn->gruLen;
   }
 
-/* Set the entirety of the Wz matrix of the given layer using the given array */
-void setWz_GRU(double* w, GRULayer* layer)
+bool read_GRU(GRULayer* grulayers, unsigned int gruLen, FILE* fp)
   {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wz[i] = w[i];
-    return;
-  }
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-/* Set the entirety of the Wr matrix of the given layer using the given array */
-void setWr_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wr[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Wh matrix of the given layer using the given array */
-void setWh_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->d * layer->h; i++)
-      layer->Wh[i] = w[i];
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wz matrix */
-void setWz_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWz_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wz[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wr matrix */
-void setWr_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWr_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wr[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Wh matrix */
-void setWh_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setWh_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wh[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set the entirety of the Uz matrix of the given layer using the given array */
-void setUz_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Uz[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Ur matrix of the given layer using the given array */
-void setUr_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Ur[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the Uh matrix of the given layer using the given array */
-void setUh_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h * layer->h; i++)
-      layer->Uh[i] = w[i];
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Uz matrix */
-void setUz_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUz_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uz[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Ur matrix */
-void setUr_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUr_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Ur[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set column[i], row[j] of the given layer, Uh matrix */
-void setUh_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setUh_ij_GRU(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uh[i * layer->h + j] = w;
-    return;
-  }
-
-/* Set the entirety of the bz vector of the given layer using the given array */
-void setbz_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bz[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the br vector of the given layer using the given array */
-void setbr_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->br[i] = w[i];
-    return;
-  }
-
-/* Set the entirety of the bh vector of the given layer using the given array */
-void setbh_GRU(double* w, GRULayer* layer)
-  {
-    unsigned int i;
-    for(i = 0; i < layer->h; i++)
-      layer->bh[i] = w[i];
-    return;
-  }
-
-/* Set element [i] of the given layer, bz vector */
-void setbz_i_GRU(double w, unsigned int i, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbz_i_GRU(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bz[i] = w;
-    return;
-  }
-
-/* Set element [i] of the given layer, br vector */
-void setbr_i_GRU(double w, unsigned int i, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbr_i_GRU(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->br[i] = w;
-    return;
-  }
-
-/* Set element [i] of the given layer, bh vector */
-void setbh_i_GRU(double w, unsigned int i, GRULayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setbh_i_GRU(%f, %d)\n", w, i);
-    #endif
-
-    if(i < layer->h)
-      layer->bh[i] = w;
-    return;
-  }
-
-void setName_GRU(char* n, GRULayer* layer)
-  {
-    unsigned char i;
-    unsigned char lim;
-    lim = (strlen(n) < LAYER_NAME_LEN) ? strlen(n) : LAYER_NAME_LEN;
-    for(i = 0; i < lim; i++)
-      layer->name[i] = n[i];
-    layer->name[i] = '\0';
-    return;
-  }
-
-/* Print the details of the given GRULayer 'layer' */
-void print_GRU(GRULayer* layer)
-  {
+    unsigned int len;
     unsigned int i, j;
 
-    #ifdef __NEURON_DEBUG
-    printf("print_GRU()\n");
-    #endif
+    for(i = 0; i < gruLen; i++)
+      {
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read LSTM parameters into buffer\n");
+            free(uintBuffer);
+            return false;
+          }
+        grulayers[i].d = uintBuffer[0];                             //  Read input dimensionality for LSTMLayer[i] from buffer
+        grulayers[i].h = uintBuffer[1];                             //  Read state dimensionality for LSTMLayer[i] from buffer
+        grulayers[i].cache = uintBuffer[2];                         //  Read state cache size for LSTMLayer[i] from buffer
+        grulayers[i].t = 0;                                         //  Initialize time step to 0
+        #ifdef __NEURON_DEBUG
+        printf("  grulayers[%d].d = %d\n", i, grulayers[i].d);
+        printf("  grulayers[%d].h = %d\n", i, grulayers[i].h);
+        printf("  grulayers[%d].cache = %d\n", i, grulayers[i].cache);
+        #endif
 
-    printf("Input dimensionality d = %d\n", layer->d);
-    printf("State dimensionality h = %d\n", layer->h);
-    printf("State cache size       = %d\n", layer->cache);
+        len = grulayers[i].d * grulayers[i].h;                      //  Allocate all things d*h
+        if((grulayers[i].Wz = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wz while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((grulayers[i].Wr = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wr while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((grulayers[i].Wh = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Wh while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].d * grulayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Wz into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Wz weights from buffer
+          grulayers[i].Wz[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Wr into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Wr weights from buffer
+          grulayers[i].Wr[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Wz into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Wh weights from buffer
+          grulayers[i].Wh[j] = doubleBuffer[j];
 
-    printf("Wz (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wz[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Wr (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wr[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Wh (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wh[i * layer->h + j]);
-        printf(" ]\n");
+        len = grulayers[i].h * grulayers[i].h;                      //  Allocate all things h*h
+        if((grulayers[i].Uz = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Uz while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((grulayers[i].Ur = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Ur while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((grulayers[i].Uh = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate weight array Uh while reading LSTMLayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h * grulayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Uz into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Uz weights from buffer
+          grulayers[i].Uz[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Ur into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Ur weights from buffer
+          grulayers[i].Ur[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU Uh into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s Uh weights from buffer
+          grulayers[i].Uh[j] = doubleBuffer[j];
+
+        len = grulayers[i].h;                                       //  Allocate all things h
+        if((grulayers[i].bz = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bz while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((grulayers[i].br = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array br while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((grulayers[i].bh = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate bias array bh while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to reallocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h
+                                                                    //  boolBuffer   --> 0
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU bz into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s bz bias from buffer
+          grulayers[i].bz[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU br into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s br bias from buffer
+          grulayers[i].br[j] = doubleBuffer[j];
+        if(fread(doubleBuffer, sizeof(double), len, fp) != len)     //  Read 'len' objects of size double into buffer
+          {
+            printf("ERROR: Unable to read GRU bh into buffer\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Read GRULayer[i]'s bh bias from buffer
+          grulayers[i].bh[j] = doubleBuffer[j];
+
+        len = grulayers[i].h * grulayers[i].cache;                  //  Allocate the output/state cache
+        if((grulayers[i].H = (double*)malloc(len * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate state cache while reading GRULayer[%d] from file\n", i);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < len; j++)                                    //  Blank out output matrix
+          grulayers[i].H[j] = 0.0;
+
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h
+                                                                    //  boolBuffer   --> 0
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read GRU Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read Accumulator layer name
+          grulayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  grulayers[%d].name = %s\n", i, grulayers[i].name);
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
       }
 
-    printf("Uz (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Uz[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Ur (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Ur[i * layer->h + j]);
-        printf(" ]\n");
-      }
-    printf("Uh (%d x %d)\n", layer->h, layer->h);
-    for(i = 0; i < layer->h; i++)
-      {
-        printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Uh[i * layer->h + j]);
-        printf(" ]\n");
-      }
-
-    printf("bz (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bz[i]);
-    printf("br (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->br[i]);
-    printf("bh (%d x 1)\n", layer->h);
-    for(i = 0; i < layer->h; i++)
-      printf("[ %.5f ]\n", layer->bh[i]);
-
-    return;
+    return true;
   }
 
-unsigned int outputLen_GRU(GRULayer* layer)
+bool write_GRU(GRULayer* grulayers, unsigned int gruLen, FILE* fp)
   {
-    return layer->h;
-  }
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-/* Run the given input vector 'x' of length 'layer'->'d' through the GRULayer 'layer'.
-   Output is stored internally in layer->H.
-   Write to the 'layer'->'t'-th column and increment t.
-   If 'layer'->'t' exceeds 'layer'->'cache', shift everything down. */
-unsigned int run_GRU(double* x, GRULayer* layer)
-  {
-    unsigned int n, m;
-    double* z;
-    double* r;
-    double* h;
-    double* hprime;                                                 //  Intermediate Hadamard product r * ht_1
-    double* ht_1;                                                   //  Time t - 1
-    unsigned int t_1;                                               //  Where we READ FROM
-    unsigned int t;                                                 //  Where we WRITE TO
-                                                                    //  layer->t increases indefinitely
-    enum CBLAS_ORDER order;
-    enum CBLAS_TRANSPOSE transa;
+    unsigned int len;
+    unsigned int i, j;
 
-    #ifdef __NEURON_DEBUG
-    printf("run_GRU(%d)\n", layer->h);
-    #endif
-
-    order = CblasColMajor;
-    transa = CblasTrans;
-
-    if((z = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{z}
+    for(i = 0; i < gruLen; i++)
       {
-        printf("ERROR: Unable to allocate GRU vector z\n");
-        exit(1);
-      }
-    if((r = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{r}
-      {
-        printf("ERROR: Unable to allocate GRU vector r\n");
-        exit(1);
-      }
-    if((h = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{h}
-      {
-        printf("ERROR: Unable to allocate GRU vector h\n");
-        exit(1);
-      }
-                                                                    //  Allocate vec{h'}
-                                                                    //  Allocate vec{h'}
-    if((hprime = (double*)malloc(layer->h * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate GRU vector hprime\n");
-        exit(1);
-      }
-    if((ht_1 = (double*)malloc(layer->h * sizeof(double))) == NULL) //  Allocate vec{ht_1}
-      {
-        printf("ERROR: Unable to allocate GRU vector ht_1\n");
-        exit(1);
-      }
-
-    if(layer->t == 0)                                               //  Timestep layer->t = 0 uses the zero-vectors for t - 1
-      {
-        t_1 = 0;
-        t = 0;
-        for(n = 0; n < layer->h; n++)                               //  Write zeroes to h(t-1)
-          ht_1[n] = 0.0;
-      }
-    else                                                            //  Timestep t > 0 uses the previous state
-      {                                                             //  Consider that we may have shifted states
-        if(layer->t >= layer->cache)                                //  out of the matrix
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
           {
-            t_1 = layer->cache - 1;                                 //  Read from the rightmost column
-                                                                    //  (then shift everything left)
-            t = layer->cache - 1;                                   //  Write to the rightmost column
+            printf("ERROR: Unable to allocate unsigned int buffer while weiting to file\n");
+            return false;
           }
-        else                                                        //  We've not yet maxed out cache
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> 0
+        uintBuffer[0] = grulayers[i].d;                             //  Copy input dimensionality for LSTMLayer[i] to buffer
+        uintBuffer[1] = grulayers[i].h;                             //  Copy state dimensionality for LSTMLayer[i] to buffer
+        uintBuffer[2] = grulayers[i].cache;                         //  Copy state cache size for LSTMLayer[i] to buffer
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
           {
-            t_1 = layer->t - 1;                                     //  Read from the previous column
-            t = layer->t;                                           //  Write to the targeted column
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(uintBuffer);
+            return false;
           }
-        for(n = 0; n < layer->h; n++)
-          ht_1[n] = layer->H[ t_1 * layer->h + n ];
-      }
+        #ifdef __NEURON_DEBUG
+        printf("  grulayers[%d].d = %d\n", i, uintBuffer[0]);
+        printf("  grulayers[%d].h = %d\n", i, uintBuffer[1]);
+        printf("  grulayers[%d].cache = %d\n", i, uintBuffer[2]);
+        #endif
 
-    for(n = 0; n < layer->h; n++)                                   //  Write biases to vectors z and r
-      {
-        z[n] = layer->bz[n];
-        r[n] = layer->br[n];
-        h[n] = 0.0;                                                 //  Blank out h
-      }
-                                                                    //  Add Uz dot ht_1 to z
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uz, layer->h, ht_1, 1, 1.0, z, 1);
-                                                                    //  Add Ur dot ht_1 to r
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Ur, layer->h, ht_1, 1, 1.0, r, 1);
-
-    if(layer->d == 1)                                               //  Add Wz dot x to z; Wr dot x to r
-      {
-        for(n = 0; n < layer->h; n++)
+        len = grulayers[i].d * grulayers[i].h;                      //  Allocate all things d*h
+        if((doubleBuffer = (double*)malloc(len * sizeof(double))) == NULL)
           {
-            z[n] += layer->Wz[n] * x[0];                            //  Add Wz dot x to z
-            r[n] += layer->Wr[n] * x[0];                            //  Add Wr dot x to r
+            printf("ERROR: Unable to allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
           }
-      }
-    else
-      {
-                                                                    //  Add Wz dot x to z
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wz, layer->h, x, 1, 1.0, z, 1);
-                                                                    //  Add Wr dot x to r
-        cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wr, layer->h, x, 1, 1.0, r, 1);
-      }
-    for(n = 0; n < layer->h; n++)                                   //  Apply sigmoid function to z and r vectors
-      {
-        z[n] = 1.0 / (1.0 + pow(M_E, -z[n]));                       //  z = sig(Wz.x + Uz.ht_1 + bz)
-        r[n] = 1.0 / (1.0 + pow(M_E, -r[n]));                       //  r = sig(Wr.x + Ur.ht_1 + br)
-      }
-
-    for(n = 0; n < layer->h; n++)                                   //  h' = r * ht_1
-      hprime[n] = r[n] * ht_1[n];
-                                                                    //  Set h = Uh.h' = Uh.(r * ht_1)
-    cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uh, layer->h, hprime, 1, 1.0, h, 1);
-    if(layer->d == 1)                                               //  Add Wh dot x to h
-      {
-        for(n = 0; n < layer->h; n++)
-          h[n] += layer->Wh[n] * x[0];                              //  Add Wh dot x to h
-      }
-    else
-      cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wh, layer->h, x, 1, 1.0, h, 1);
-    for(n = 0; n < layer->h; n++)                                   //  Add bias to h vector
-      h[n] += layer->bh[n];
-
-    //  Now h = Wh.x + Uh.(r * ht_1) + bh
-
-    //  We have allocated h-by-cache space for 'H', but the structure and routine should not crash if
-    //  we write more than 'cache' states. Shift everything down one column and write to the end.
-    if(layer->t >= layer->cache)
-      {
-        for(m = 1; m < layer->cache; m++)                           //  Shift down
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].d * grulayers[i].h
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Wz[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            for(n = 0; n < layer->h; n++)
-              layer->H[(m - 1) * layer->h + n] = layer->H[m * layer->h + n];
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Wz[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
 
-    for(n = 0; n < layer->h; n++)
-      {
-                                                                    //  h = z*ht_1 + (1-z)*tanh(h)
-        layer->H[ t * layer->h + n ] = z[n] * ht_1[n] + (1.0 - z[n]) * ((2.0 / (1.0 + pow(M_E, -2.0 * h[n]))) - 1.0);
-      }
-
-    free(z);
-    free(r);
-    free(hprime);
-    free(h);
-    free(ht_1);
-
-    layer->t++;                                                     //  Increment time step
-
-    return layer->h;                                                //  Return the size of the state
-  }
-
-void reset_GRU(GRULayer* layer)
-  {
-    unsigned int i;
-    layer->t = 0;
-    for(i = 0; i < layer->h * layer->cache; i++)
-      layer->H[i] = 0.0;
-    return;
-  }
-
-/**************************************************************************************************
- 2D-Convolutional-Layers  */
-
-/* Add a Conv2DLayer to a network in progress.
-   It shall have an 'inputW' by 'inputH' input matrix.
-   Note that this function DOES NOT, itself, allocate any filters! */
-unsigned int add_Conv2D(unsigned int inputW, unsigned int inputH, NeuralNet* nn)
-  {
-    unsigned char i;
-
-    #ifdef __NEURON_DEBUG
-    printf("add_Conv2D(%d, %d)\n", inputW, inputH);
-    #endif
-
-    nn->convLen++;
-    if(nn->convLen == 1)                                            //  Expand the Conv2DLayer array
-      {
-        if((nn->convlayers = (Conv2DLayer*)malloc(sizeof(Conv2DLayer))) == NULL)
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Wr[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to allocate Conv2DLayer array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
-    else
-      {
-        if((nn->convlayers = (Conv2DLayer*)realloc(nn->convlayers, nn->convLen * sizeof(Conv2DLayer))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Wr[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Wh[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to re-allocate Conv2DLayer array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Wh[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
 
-    nn->convlayers[nn->convLen - 1].inputW = inputW;                //  Set this newest layer's input dimentions
-    nn->convlayers[nn->convLen - 1].inputH = inputH;
-    nn->convlayers[nn->convLen - 1].n = 0;                          //  New layer initially contains zero filters
-    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
-      nn->convlayers[nn->convLen - 1].name[i] = '\0';
-
-    return nn->convLen;
-  }
-
-/* Add a Filter2D to an existing Conv2DLayer.
-   The new filter shall have dimensions 'filterW' by 'filterH'. */
-unsigned int add_Conv2DFilter(unsigned int filterW, unsigned int filterH, Conv2DLayer* convlayer)
-  {
-    unsigned int i;
-    unsigned int ctr;
-
-    #ifdef __NEURON_DEBUG
-    printf("add_Conv2DFilter(%d, %d)\n", filterW, filterH);
-    #endif
-
-    convlayer->n++;                                                 //  Increment the number of filters/units
-    if(convlayer->n == 1)
-      {
-                                                                    //  Allocate filter in 'filters' array
-        if((convlayer->filters = (Filter2D*)malloc(sizeof(Filter2D))) == NULL)
+        len = grulayers[i].h * grulayers[i].h;                      //  Allocate all things h*h
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
           {
-            printf("ERROR: Unable to allocate Conv2DLayer's filters array\n");
-            exit(1);
+            printf("ERROR: Unable to re-allocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
           }
-                                                                    //  Allocate this layer's function-flag array
-        if((convlayer->f = (unsigned char*)malloc(sizeof(char))) == NULL)
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h * grulayers[i].h
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Uz[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to allocate Conv2DLayer's function-flag array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-                                                                    //  Allocate this layer's function-parameter array
-        if((convlayer->alpha = (double*)malloc(sizeof(double))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Uz[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Ur[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to allocate Conv2DLayer's function-parameter array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-                                                                    //  Allocate this layer's output array
-        if((convlayer->out = (double*)malloc((convlayer->inputW - filterW + 1) *
-                                             (convlayer->inputH - filterH + 1) * sizeof(double))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Ur[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].Uh[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to allocate Conv2DLayer's internal output array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
-    else
-      {
-                                                                    //  Allocate another filter in 'filters' array
-        if((convlayer->filters = (Filter2D*)realloc(convlayer->filters, convlayer->n * sizeof(Filter2D))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].Uh[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        len = grulayers[i].h;                                       //  Allocate all things h
+        if((doubleBuffer = (double*)realloc(doubleBuffer, len * sizeof(double))) == NULL)
           {
-            printf("ERROR: Unable to re-allocate Conv2DLayer's filters array\n");
-            exit(1);
+            printf("ERROR: Unable to reallocate double buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
           }
-        if((convlayer->f = (unsigned char*)realloc(convlayer->f, convlayer->n * sizeof(char))) == NULL)
+                                                                    //  ucharBuffer  --> 0
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].bz[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to re-allocate Conv2DLayer's function-flag array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-                                                                    //  Allocate this newest layer's function-parameter array
-        if((convlayer->alpha = (double*)realloc(convlayer->alpha, convlayer->n * sizeof(double))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].bz[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].br[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to re-allocate Conv2DLayer's function-parameter array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-        ctr = 0;                                                    //  Count output length attributable to previous filters
-        for(i = 0; i < convlayer->n - 1; i++)
-          ctr += (convlayer->inputW - convlayer->filters[i].w + 1) * (convlayer->inputH - convlayer->filters[i].h + 1);
-        if((convlayer->out = (double*)realloc(convlayer->out,       //  Allocate this layer's output array
-                                              (ctr + (convlayer->inputW - filterW + 1)  *
-                                                     (convlayer->inputH - filterH + 1)) * sizeof(double))) == NULL)
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].br[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
+
+        for(j = 0; j < len; j++)
+          doubleBuffer[j] = grulayers[i].bh[j];
+        if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
           {
-            printf("ERROR: Unable to re-allocate Conv2DLayer's internal output array\n");
-            exit(1);
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-      }
+        #ifdef __NEURON_DEBUG
+        for(j = 0; j < len; j++)
+          printf("  grulayers[%d].bh[%d] = %.6f\n", i, j, doubleBuffer[j]);
+        #endif
 
-    convlayer->filters[convlayer->n - 1].w = filterW;               //  Set newest filter's dimensions
-    convlayer->filters[convlayer->n - 1].h = filterH;
-                                                                    //  Allocate the filter matrix plus bias
-    if((convlayer->filters[convlayer->n - 1].W = (double*)malloc((filterW * filterH + 1) * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate Conv2DLayer's filter\n");
-        exit(1);
-      }
-    for(i = 0; i < filterW * filterH; i++)                          //  Generate random numbers in [ -1.0, 1.0 ]
-      convlayer->filters[convlayer->n - 1].W[i] = -1.0 + ((double)rand() / ((double)RAND_MAX * 0.5));
-    convlayer->filters[convlayer->n - 1].W[i] = 0.0;                //  Defaut bias = 0.0
-
-    convlayer->f[convlayer->n - 1] = RELU;                          //  Default to ReLU
-    convlayer->alpha[convlayer->n - 1] = 1.0;                       //  Default to 1.0
-
-    return convlayer->n;
-  }
-
-/* Set entirety of i-th filter; w is length width * height + 1.
-   Input array 'w' is expected to be ROW-MAJOR:
-        filter
-   [ w0  w1  w2  ]
-   [ w3  w4  w5  ]
-   [ w6  w7  w8  ]  [ bias (w9) ]  */
-void setW_i_Conv2D(double* w, unsigned int i, Conv2DLayer* layer)
-  {
-    unsigned int j;
-
-    #ifdef __NEURON_DEBUG
-    printf("setW_i_Conv2D(%d)\n", i);
-    #endif
-
-    for(j = 0; j < layer->filters[i].w * layer->filters[i].h + 1; j++)
-      layer->filters[i].W[j] = w[j];
-    return;
-  }
-
-/* Set filter[i], weight[j] of the given layer */
-void setW_ij_Conv2D(double w, unsigned int i, unsigned int j, Conv2DLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setW_ij_Conv2D(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(i < layer->n && j <= layer->filters[i].w * layer->filters[i].h)
-      layer->filters[i].W[j] = w;
-    return;
-  }
-
-/* Set the activation function for unit[i] of the given layer */
-void setF_i_Conv2D(unsigned char func, unsigned int i, Conv2DLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setF_i_Conv2D(%d, %d)\n", func, i);
-    #endif
-
-    if(i < layer->n)
-      layer->f[i] = func;
-    return;
-  }
-
-/* Set the activation function parameter for unit[i] of the given layer */
-void setA_i_Conv2D(double a, unsigned int i, Conv2DLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setA_i_Conv2D(%f, %d)\n", a, i);
-    #endif
-
-    if(i < layer->n)
-      layer->alpha[i] = a;
-    return;
-  }
-
-/* Set the name of the given Convolutional Layer */
-void setName_Conv2D(char* n, Conv2DLayer* layer)
-  {
-    unsigned char i;
-    unsigned char lim;
-    lim = (strlen(n) < LAYER_NAME_LEN) ? strlen(n) : LAYER_NAME_LEN;
-    for(i = 0; i < lim; i++)
-      layer->name[i] = n[i];
-    layer->name[i] = '\0';
-    return;
-  }
-
-/* Print the details of the given Conv2DLayer 'layer' */
-void print_Conv2D(Conv2DLayer* layer)
-  {
-    unsigned int i, x, y;
-
-    #ifdef __NEURON_DEBUG
-    printf("print_Conv2D()\n");
-    #endif
-
-    for(i = 0; i < layer->n; i++)                                   //  Draw each filter
-      {
-        printf("Filter %d\n", i);
-        for(y = 0; y < layer->filters[i].h; y++)
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
           {
-            printf("  [");
-            for(x = 0; x < layer->filters[i].w; x++)
-              {
-                if(layer->filters[i].W[y * layer->filters[i].w + x] >= 0.0)
-                  printf(" %.5f ", layer->filters[i].W[y * layer->filters[i].w + x]);
-                else
-                  printf("%.5f ", layer->filters[i].W[y * layer->filters[i].w + x]);
-              }
-            printf("]\n");
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
           }
-        printf("  Func:  ");
-        switch(layer->f[i])
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+                                                                    //  doubleBuffer --> grulayers[i].h
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name to the buffer
+          ucharBuffer[j] = grulayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
           {
-            case RELU:                printf("ReLU   ");  break;
-            case LEAKY_RELU:          printf("L.ReLU ");  break;
-            case SIGMOID:             printf("Sig.   ");  break;
-            case HYPERBOLIC_TANGENT:  printf("tanH   ");  break;
-            case SOFTMAX:             printf("SoftMx ");  break;
-            case SYMMETRICAL_SIGMOID: printf("SymSig ");  break;
-            case THRESHOLD:           printf("Thresh ");  break;
-            case LINEAR:              printf("Linear ");  break;
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  grulayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
           }
         printf("\n");
-        printf("  Param: %.5f\n", layer->alpha[i]);
-        printf("  Bias:  %.5f\n", layer->filters[i].W[layer->filters[i].h * layer->filters[i].w]);
-      }
-    return;
-  }
+        #endif
 
-/* Return the layer's output length */
-unsigned int outputLen_Conv2D(Conv2DLayer* layer)
-  {
-    unsigned int ctr = 0;
-    unsigned int i;
-
-    #ifdef __NEURON_DEBUG
-    printf("outputLen_Conv2D()\n");
-    #endif
-
-    for(i = 0; i < layer->n; i++)
-      ctr += (layer->inputW - layer->filters[i].w + 1) * (layer->inputH - layer->filters[i].h + 1);
-
-    return ctr;
-  }
-
-/* Run the given input vector 'x' of length 'layer'->'inputW' * 'layer'->'inputH' through the Conv2DLayer 'layer'.
-   The understanding for this function is that convolution never runs off the edge of the input,
-   and that there is only one "color-channel."
-   Output is stored internally in layer->out. */
-unsigned int run_Conv2D(double* xvec, Conv2DLayer* layer)
-  {
-    unsigned int i, o = 0, c;                                       //  Iterators for the filters, the output vector, and the cache
-    unsigned int s;                                                 //  Cache iterator
-    unsigned int x, y;                                              //  Input iterators
-    unsigned int m, n;                                              //  Filter iterators
-    unsigned int outlen = 0;                                        //  Length of the output vector
-    double* cache;                                                  //  Output array for a single filter
-    double softmaxdenom;
-    double val;
-
-    #ifdef __NEURON_DEBUG
-    printf("run_Conv2D(%d, %d)\n", layer->inputW, layer->inputH);
-    #endif
-
-    for(i = 0; i < layer->n; i++)                                   //  Add up the outputs for each filter, given the input size
-      outlen += (layer->inputW - layer->filters[i].w + 1) * (layer->inputH - layer->filters[i].h + 1);
-
-    for(i = 0; i < layer->n; i++)                                   //  For each filter
-      {
-        c = 0;
-        softmaxdenom = 0.0;
-        if((cache = (double*)malloc((layer->inputW - layer->filters[i].w + 1) * (layer->inputH - layer->filters[i].h + 1) * sizeof(double))) == NULL)
-          {
-            printf("ERROR: Unable to allocate filter output buffer\n");
-            exit(1);
-          }
-
-        for(y = 0; y <= layer->inputH - layer->filters[i].h; y++)
-          {
-            for(x = 0; x <= layer->inputW - layer->filters[i].w; x++)
-              {
-                val = 0.0;
-                for(n = 0; n < layer->filters[i].h; n++)
-                  {
-                    for(m = 0; m < layer->filters[i].w; m++)
-                      val += layer->filters[i].W[n * layer->filters[i].w + m] * xvec[(y + n) * layer->inputW + x + m];
-                  }
-                                                                    //  Add bias
-                val += layer->filters[i].W[layer->filters[i].w * layer->filters[i].h];
-                cache[c] = val;                                     //  Add the value to the cache
-                c++;
-              }
-          }
-
-        for(s = 0; s < c; s++)                                      //  In case one of the units is a softmax unit,
-          softmaxdenom += pow(M_E, cache[s]);                       //  compute all exp()'s so we can sum them.
-
-        for(s = 0; s < c; s++)
-          {
-            switch(layer->f[i])
-              {
-                case RELU:                 layer->out[o] = (cache[s] > 0.0) ? cache[s] : 0.0;
-                                           break;
-                case LEAKY_RELU:           layer->out[o] = (cache[s] > cache[s] * layer->alpha[i]) ? cache[s] : layer->alpha[i];
-                                           break;
-                case SIGMOID:              layer->out[o] = 1.0 / (1.0 + pow(M_E, -cache[s] * layer->alpha[i]));
-                                           break;
-                case HYPERBOLIC_TANGENT:   layer->out[o] = (2.0 / (1.0 + pow(M_E, -2.0 * cache[s] * layer->alpha[i]))) - 1.0;
-                                           break;
-                case SOFTMAX:              layer->out[o] = pow(M_E, cache[s]) / softmaxdenom;
-                                           break;
-                case SYMMETRICAL_SIGMOID:  layer->out[o] = (1.0 - pow(M_E, -cache[s] * layer->alpha[i])) / (1.0 + pow(M_E, -cache[s] * layer->alpha[i]));
-                                           break;
-                case THRESHOLD:            layer->out[o] = (cache[s] > layer->alpha[i]) ? 1.0 : 0.0;
-                                           break;
-                                                                    //  (Includes LINEAR)
-                default:                   layer->out[o] = cache[s] * layer->alpha[i];
-              }
-            o++;
-          }
-
-        free(cache);                                                //  Release the cache for this filter
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
       }
 
-    return outlen;
+    return true;
   }
 
 /**************************************************************************************************
- Accumulator-Layers  */
+ Pooling-Layers  */
 
-unsigned int add_Accum(unsigned int inputs, NeuralNet* nn)
+/* Add a PoolingLayer to a network in progress. */
+unsigned int add_Pool(unsigned int inputW, unsigned int inputH, NeuralNet* nn)
   {
     unsigned int i;
 
     #ifdef __NEURON_DEBUG
-    printf("add_Accum(%d)\n", inputs);
+    printf("add_Pool(%d, %d)\n", inputW, inputH);
     #endif
 
-    nn->accumLen++;
-
-    if(nn->accumLen == 1)                                           //  Expand the AccumLayer array
+    nn->poolLen++;
+    if(nn->poolLen == 1)                                            //  Expand the Pool2DLayer array
       {
-        if((nn->accumlayers = (AccumLayer*)malloc(sizeof(AccumLayer))) == NULL)
+        if((nn->poollayers = (Pool2DLayer*)malloc(sizeof(Pool2DLayer))) == NULL)
           {
-            printf("ERROR: Unable to allocate AccumLayer array\n");
+            printf("ERROR: Unable to allocate Pool2DLayer array\n");
             exit(1);
           }
       }
     else
       {
-        if((nn->accumlayers = (AccumLayer*)realloc(nn->accumlayers, nn->accumLen * sizeof(AccumLayer))) == NULL)
+        if((nn->poollayers = (Pool2DLayer*)realloc(nn->poollayers, nn->poolLen * sizeof(Pool2DLayer))) == NULL)
           {
-            printf("ERROR: Unable to re-allocate AccumLayer array\n");
+            printf("ERROR: Unable to re-allocate Pool2DLayer array\n");
             exit(1);
           }
       }
-    nn->accumlayers[nn->accumLen - 1].i = inputs;
-                                                                    //  Allocate output buffer
-    if((nn->accumlayers[nn->accumLen - 1].out = (double*)malloc(inputs * sizeof(double))) == NULL)
+
+    nn->poollayers[nn->poolLen - 1].inputW = inputW;                //  Set this newest layer's input dimensions
+    nn->poollayers[nn->poolLen - 1].inputH = inputH;
+    nn->poollayers[nn->poolLen - 1].n = 0;                          //  New layer initially contains zero pools
+    nn->poollayers[nn->poolLen - 1].outlen = 0;                     //  An empty layer has zero output
+
+    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
+      nn->poollayers[nn->poolLen - 1].name[i] = '\0';
+
+    return nn->poolLen;
+  }
+
+bool read_Pool2D(Pool2DLayer* poollayers, unsigned int poolLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < poolLen; i++)
       {
-        printf("ERROR: Unable to allocate AccumLayer's internal output array\n");
+                                                                    //  Allocate buffers for reading this type of layer
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read Pooling Layer int parameters into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        poollayers[i].inputW = uintBuffer[0];                       //  Read input width for Pool2DLayer[i] from buffer
+        poollayers[i].inputH = uintBuffer[1];                       //  Read input height for Pool2DLayer[i] from buffer
+        poollayers[i].n = uintBuffer[2];                            //  Read number of pools for Pool2DLayer[i] from buffer
+                                                                    //  Read LAYER_NAME_LEN objects of size char into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Pooling Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read layer name
+          poollayers[i].name[j] = ucharBuffer[j];
+
+        #ifdef __NEURON_DEBUG
+        printf("  poollayers[%d].inputW = %d\n", i, poollayers[i].inputW);
+        printf("  poollayers[%d].inputH = %d\n", i, poollayers[i].inputH);
+        printf("  poollayers[%d].n      = %d\n", i, poollayers[i].n);
+        printf("  poollayers[%d].name = %s\n", i, poollayers[i].name);
+        #endif
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+
+                                                                    //  Allocate 'n' pools
+        if((poollayers[i].pools = (Pool2D*)malloc(poollayers[i].n * sizeof(Pool2D))) == NULL)
+          {
+            printf("ERROR: Unable to allocate pool array for Pool2DLayer[%d] while reading from file\n", i);
+            exit(1);
+          }
+        for(j = 0; j < poollayers[i].n; j++)                        //  Fill in details of each pool in this layer
+          {
+                                                                    //  Pools need to read 4 ints (w, h, stride_h, stride_v);
+                                                                    //                     1 uchar (f);
+            if((ucharBuffer = (unsigned char*)malloc(sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while reading from file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+
+            if(fread(uintBuffer, sizeof(int), 4, fp) != 4)          //  Read 4 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read dimensions and strides for Pooling Layer pool[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            poollayers[i].pools[j].w = uintBuffer[0];               //  Read dimensions and strides
+            poollayers[i].pools[j].h = uintBuffer[1];
+            poollayers[i].pools[j].stride_h = uintBuffer[2];
+            poollayers[i].pools[j].stride_v = uintBuffer[3];
+            if(fread(ucharBuffer, sizeof(char), 1, fp) != 1)        //  Read 1 object of size char into buffer
+              {
+                printf("ERROR: Unable to read pool type flag for Pooling Layer pool[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            poollayers[i].pools[j].f = ucharBuffer[0];              //  Read pool-type flag
+            #ifdef __NEURON_DEBUG
+            printf("  poollayers[%d].pools[%d].w = %d\n", i, j, poollayers[i].pools[j].w);
+            printf("  poollayers[%d].pools[%d].h = %d\n", i, j, poollayers[i].pools[j].h);
+            printf("  poollayers[%d].pools[%d].stride_h = %d\n", i, j, poollayers[i].pools[j].stride_h);
+            printf("  poollayers[%d].pools[%d].stride_v = %d\n", i, j, poollayers[i].pools[j].stride_v);
+            switch(poollayers[i].pools[j].f)
+              {
+                case MAX_POOL:     printf("  poollayers[%d].pools[%d].f = MAX\n", i, j);  break;
+                case MIN_POOL:     printf("  poollayers[%d].pools[%d].f = MIN\n", i, j);  break;
+                case AVG_POOL:     printf("  poollayers[%d].pools[%d].f = AVG\n", i, j);  break;
+                case MEDIAN_POOL:  printf("  poollayers[%d].pools[%d].f = MEDIAN\n", i, j);  break;
+              }
+            #endif
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+          }
+                                                                    //  Compute layer's output length; allocate and blank its output buffer
+        poollayers[i].outlen = outputLen_Pool2D(poollayers + i);
+        if((poollayers[i].out = (double*)malloc(poollayers[i].outlen * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading Pool2DLayer[%d] from file\n", i);
+            return false;
+          }                                                         //  Allocate and blank out output array
+        for(j = 0; j < poollayers[i].outlen; j++)
+          poollayers[i].out[j] = 0.0;
+      }
+
+    return true;
+  }
+
+bool write_Pool2D(Pool2DLayer* poollayers, unsigned int poolLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < poolLen; i++)
+      {
+                                                                    //  Allocate buffers for reading this type of layer
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while writing to file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for writing to file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+        uintBuffer[0] = poollayers[i].inputW;                       //  Copy input width for Pool2DLayer[i] to buffer
+        uintBuffer[1] = poollayers[i].inputH;                       //  Copy input height for Pool2DLayer[i] to buffer
+        uintBuffer[2] = poollayers[i].n;                            //  Copy number of pools for Pool2DLayer[i] to buffer
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  poollayers[%d].inputW = %d\n", i, uintBuffer[0]);
+        printf("  poollayers[%d].inputH = %d\n", i, uintBuffer[1]);
+        printf("  poollayers[%d].n = %d\n", i, uintBuffer[2]);
+        #endif
+
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Write layer name to the buffer
+          ucharBuffer[j] = poollayers[i].name[j];
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  poollayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+
+        for(j = 0; j < poollayers[i].n; j++)                        //  Fill in details of each pool in this layer
+          {
+                                                                    //  Pools need to read 4 ints (w, h, stride_h, stride_v);
+                                                                    //                     1 uchar (f);
+            if((ucharBuffer = (unsigned char*)malloc(sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while reading from file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 1
+                                                                    //  uintBuffer   --> 4
+            uintBuffer[0] = poollayers[i].pools[j].w;               //  Copy dimensions and strides
+            uintBuffer[1] = poollayers[i].pools[j].h;
+            uintBuffer[2] = poollayers[i].pools[j].stride_h;
+            uintBuffer[3] = poollayers[i].pools[j].stride_v;
+            ucharBuffer[0] = poollayers[i].pools[j].f;              //  Copy pool-type flag
+            if(fwrite(uintBuffer, sizeof(int), 4, fp) != 4)         //  From buffer, write 4 objects of size int
+              {
+                printf("ERROR: Unable to write unsigned int buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            if(fwrite(ucharBuffer, sizeof(char), 1, fp) != 1)       //  From buffer, write 1 object of size char
+              {
+                printf("ERROR: Unable to write unsigned char buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  poollayers[%d].pools[%d].w = %d\n", i, j, uintBuffer[0]);
+            printf("  poollayers[%d].pools[%d].h = %d\n", i, j, uintBuffer[1]);
+            printf("  poollayers[%d].pools[%d].stride_h = %d\n", i, j, uintBuffer[2]);
+            printf("  poollayers[%d].pools[%d].stride_v = %d\n", i, j, uintBuffer[3]);
+            switch(ucharBuffer[0])
+              {
+                case MAX_POOL:     printf("  poollayers[%d].pools[%d].f = MAX\n", i, j);  break;
+                case MIN_POOL:     printf("  poollayers[%d].pools[%d].f = MIN\n", i, j);  break;
+                case AVG_POOL:     printf("  poollayers[%d].pools[%d].f = AVG\n", i, j);  break;
+                case MEDIAN_POOL:  printf("  poollayers[%d].pools[%d].f = MEDIAN\n", i, j);  break;
+              }
+            #endif
+
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+          }
+      }
+
+    return true;
+  }
+
+/**************************************************************************************************
+ Upres-Layers  */
+
+/* Add a 2D upres layer to a network in progress. */
+unsigned int add_Upres(unsigned int inputW, unsigned int inputH, NeuralNet* nn)
+  {
+    unsigned int i;
+
+    #ifdef __NEURON_DEBUG
+    printf("add_Upres(%d, %d)\n", inputW, inputH);
+    #endif
+
+    nn->upresLen++;
+    if(nn->upresLen == 1)                                           //  Expand the UpresLayer array
+      {
+        if((nn->upreslayers = (UpresLayer*)malloc(sizeof(UpresLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate UpresLayer array\n");
+            exit(1);
+          }
+      }
+    else
+      {
+        if((nn->upreslayers = (UpresLayer*)realloc(nn->upreslayers, nn->upresLen * sizeof(UpresLayer))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate UpresLayer array\n");
+            exit(1);
+          }
+      }
+
+    nn->upreslayers[nn->upresLen - 1].inputW = inputW;              //  Set this newest layer's input dimensions
+    nn->upreslayers[nn->upresLen - 1].inputH = inputH;
+    nn->upreslayers[nn->upresLen - 1].n = 0;                        //  Initially, no up-ressings
+    nn->upreslayers[nn->upresLen - 1].outlen = 0;                   //  And therefore, no output
+
+    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
+      nn->upreslayers[nn->upresLen - 1].name[i] = '\0';
+
+    return nn->upresLen;
+  }
+
+bool read_Upres(UpresLayer* upreslayers, unsigned int upresLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < upresLen; i++)
+      {
+                                                                    //  Reallocate buffers for reading this type of layer
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+
+        if(fread(uintBuffer, sizeof(int), 3, fp) != 3)              //  Read 3 objects of size int into buffer
+          {
+            printf("ERROR: Unable to read Up-Res Layer int parameters into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        upreslayers[i].inputW = uintBuffer[0];                      //  Read input width for UpresLayer[i] from buffer
+        upreslayers[i].inputH = uintBuffer[1];                      //  Read input height for UpresLayer[i] from buffer
+        upreslayers[i].n = uintBuffer[2];                           //  Read number of up-ressings for UpresLayer[i] from buffer
+                                                                    //  Read Upres-Layer's name into buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Up-Res Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Copy layer name
+          upreslayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  upreslayers[%d].inputW = %d\n", i, upreslayers[i].inputW);
+        printf("  upreslayers[%d].inputH = %d\n", i, upreslayers[i].inputH);
+        printf("  upreslayers[%d].n      = %d\n", i, upreslayers[i].n);
+        printf("  upreslayers[%d].name   = %s\n", i, upreslayers[i].name);
+        #endif
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+
+                                                                    //  Allocate 'n' upressings
+        if((upreslayers[i].params = (UpresParams*)malloc(upreslayers[i].n * sizeof(UpresParams))) == NULL)
+          {
+            printf("ERROR: Unable to allocate upressing array for UpresLayer[%d] while reading from file\n", i);
+            return false;
+          }
+        for(j = 0; j < upreslayers[i].n; j++)                       //  Fill in details of each upressing in this layer
+          {
+                                                                    //  Upressings need to read 4 ints (stride_h, stride_v, padding_h, padding_v);
+                                                                    //                          2 uchars (sMethod, pMethod);
+            if((ucharBuffer = (unsigned char*)malloc(2 * sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while reading from file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while reading from file\n");
+                free(ucharBuffer);
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 2
+                                                                    //  uintBuffer   --> 4
+                                                                    //  doubleBuffer --> 0
+                                                                    //  boolBuffer   --> 0
+            if(fread(uintBuffer, sizeof(int), 4, fp) != 4)          //  Read 4 objects of size int into buffer
+              {
+                printf("ERROR: Unable to read strides and padding for Upres Layer filter[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            if(fread(ucharBuffer, sizeof(char), 2, fp) != 2)        //  Read 2 objects of size char into buffer
+              {
+                printf("ERROR: Unable to read stride and padding method flags for Upres Layer filter[%d] into buffer", j);
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+                                                                    //  Read strides and paddings
+            upreslayers[i].params[j].stride_h = uintBuffer[0];
+            upreslayers[i].params[j].stride_v = uintBuffer[1];
+            upreslayers[i].params[j].padding_h = uintBuffer[2];
+            upreslayers[i].params[j].padding_v = uintBuffer[3];
+            upreslayers[i].params[j].sMethod = ucharBuffer[0];
+            upreslayers[i].params[j].pMethod = ucharBuffer[1];
+            #ifdef __NEURON_DEBUG
+            printf("  upreslayers[%d].params[%d].stride_h = %d\n", i, j, upreslayers[i].params[j].stride_h);
+            printf("  upreslayers[%d].params[%d].stride_v = %d\n", i, j, upreslayers[i].params[j].stride_v);
+            printf("  upreslayers[%d].params[%d].padding_h = %d\n", i, j, upreslayers[i].params[j].padding_h);
+            printf("  upreslayers[%d].params[%d].padding_v = %d\n", i, j, upreslayers[i].params[j].padding_v);
+            printf("  upreslayers[%d].params[%d].sMethod = %d\n", i, j, upreslayers[i].params[j].sMethod);
+            printf("  upreslayers[%d].params[%d].pMethod = %d\n", i, j, upreslayers[i].params[j].pMethod);
+            #endif
+
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+          }
+                                                                    //  Compute layer's output length; allocate and blank its output buffer
+        upreslayers[i].outlen = outputLen_Upres(upreslayers + i);
+        if((upreslayers[i].out = (double*)malloc(upreslayers[i].outlen * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading UpresLayer[%d] from file\n", i);
+            return false;
+          }                                                         //  Allocate and blank out output array
+        for(j = 0; j < upreslayers[i].outlen; j++)
+          upreslayers[i].out[j] = 0.0;
+      }
+
+    return true;
+  }
+
+bool write_Upres(UpresLayer* upreslayers, unsigned int upresLen, FILE* fp)
+  {
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+
+    unsigned int i, j;
+
+    for(i = 0; i < upresLen; i++)
+      {
+                                                                    //  Reallocate buffers for reading this type of layer
+        if((uintBuffer = (unsigned int*)malloc(3 * sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer while writing to file\n");
+            return false;
+          }
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned char buffer for writing to file\n");
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 3
+        uintBuffer[0] = upreslayers[i].inputW;                      //  Copy input width for UpresLayer[i] to buffer
+        uintBuffer[1] = upreslayers[i].inputH;                      //  Copy input height for UpresLayer[i] to buffer
+        uintBuffer[2] = upreslayers[i].n;                           //  Copy number of up-ressings for UpresLayer[i] to buffer
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Copy layer name
+          ucharBuffer[j] = upreslayers[i].name[j];
+        if(fwrite(uintBuffer, sizeof(int), 3, fp) != 3)             //  From buffer, write 3 objects of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  upreslayers[%d].inputW = %d\n", i, uintBuffer[0]);
+        printf("  upreslayers[%d].inputH = %d\n", i, uintBuffer[1]);
+        printf("  upreslayers[%d].n = %d\n", i, uintBuffer[2]);
+        printf("  upreslayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+
+        for(j = 0; j < upreslayers[i].n; j++)                       //  Fill in details of each upressing in this layer
+          {
+                                                                    //  Upressings need to read 4 ints (stride_h, stride_v, padding_h, padding_v);
+                                                                    //                          2 uchars (sMethod, pMethod);
+            if((ucharBuffer = (unsigned char*)malloc(2 * sizeof(char))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned char buffer while writing to file\n");
+                return false;
+              }
+            if((uintBuffer = (unsigned int*)malloc(4 * sizeof(int))) == NULL)
+              {
+                printf("ERROR: Unable to allocate unsigned int buffer while writing to file\n");
+                free(ucharBuffer);
+                return false;
+              }
+                                                                    //  ucharBuffer  --> 2
+                                                                    //  uintBuffer   --> 4
+            uintBuffer[0] = upreslayers[i].params[j].stride_h;      //  Copy strides and paddings to buffer
+            uintBuffer[1] = upreslayers[i].params[j].stride_v;
+            uintBuffer[2] = upreslayers[i].params[j].padding_h;
+            uintBuffer[3] = upreslayers[i].params[j].padding_v;
+            ucharBuffer[0] = upreslayers[i].params[j].sMethod;
+            ucharBuffer[1] = upreslayers[i].params[j].pMethod;
+            if(fwrite(uintBuffer, sizeof(int), 4, fp) != 4)         //  From buffer, write 4 objects of size int
+              {
+                printf("ERROR: Unable to write unsigned int buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            if(fwrite(ucharBuffer, sizeof(char), 2, fp) != 2)       //  From buffer, write 2 objects of size char
+              {
+                printf("ERROR: Unable to write unsigned char buffer to file.\n");
+                free(ucharBuffer);
+                free(uintBuffer);
+                return false;
+              }
+            #ifdef __NEURON_DEBUG
+            printf("  upreslayers[%d].params[%d].stride_h = %d\n", i, j, uintBuffer[0]);
+            printf("  upreslayers[%d].params[%d].stride_v = %d\n", i, j, uintBuffer[1]);
+            printf("  upreslayers[%d].params[%d].padding_h = %d\n", i, j, uintBuffer[2]);
+            printf("  upreslayers[%d].params[%d].padding_v = %d\n", i, j, uintBuffer[3]);
+            printf("  upreslayers[%d].params[%d].sMethod = %d\n", i, j, ucharBuffer[0]);
+            printf("  upreslayers[%d].params[%d].pMethod = %d\n", i, j, ucharBuffer[1]);
+            #endif
+
+            free(ucharBuffer);                                      //  ucharBuffer  --> 0
+            free(uintBuffer);                                       //  uintBuffer   --> 0
+          }
+      }
+
+    return true;
+  }
+
+/**************************************************************************************************
+ Normalization-Layers  */
+
+unsigned int add_Normal(unsigned int inputs, NeuralNet* nn)
+  {
+    unsigned int i;
+
+    #ifdef __NEURON_DEBUG
+    printf("add_Normal(%d)\n", inputs);
+    #endif
+
+    nn->normalLen++;
+
+    if(nn->normalLen == 1)                                          //  Expand the NormalLayer array
+      {
+        if((nn->normlayers = (NormalLayer*)malloc(sizeof(NormalLayer))) == NULL)
+          {
+            printf("ERROR: Unable to allocate NormalLayer array\n");
+            exit(1);
+          }
+      }
+    else
+      {
+        if((nn->normlayers = (NormalLayer*)realloc(nn->normlayers, nn->normalLen * sizeof(NormalLayer))) == NULL)
+          {
+            printf("ERROR: Unable to re-allocate NormalLayer array\n");
+            exit(1);
+          }
+      }
+
+    nn->normlayers[nn->normalLen - 1].i = inputs;
+    nn->normlayers[nn->normalLen - 1].m = 0.0;                      //  Initialize to no effect:
+    nn->normlayers[nn->normalLen - 1].s = 1.0;                      //  y = g * ((x - m) / s) + b
+    nn->normlayers[nn->normalLen - 1].g = 1.0;
+    nn->normlayers[nn->normalLen - 1].b = 0.0;
+                                                                    //  Allocate output buffer
+    if((nn->normlayers[nn->normalLen - 1].out = (double*)malloc(inputs * sizeof(double))) == NULL)
+      {
+        printf("ERROR: Unable to allocate NormalLayer's internal output array\n");
         exit(1);
       }
     for(i = 0; i < inputs; i++)                                     //  Blank out 'out' array
-      nn->accumlayers[nn->accumLen - 1].out[i] = 0.0;
+      nn->normlayers[nn->normalLen - 1].out[i] = 0.0;
     for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
-      nn->accumlayers[nn->accumLen - 1].name[i] = '\0';
+      nn->normlayers[nn->normalLen - 1].name[i] = '\0';
 
-    return nn->accumLen;
+    return nn->normalLen;
   }
 
-/* Set the name of the given Accumulator Layer */
-void setName_Accum(char* n, AccumLayer* layer)
+bool read_Normal(NormalLayer* normlayers, unsigned int normalLen, FILE* fp)
   {
-    unsigned char i;
-    unsigned char lim;
-    lim = (strlen(n) < LAYER_NAME_LEN) ? strlen(n) : LAYER_NAME_LEN;
-    for(i = 0; i < lim; i++)
-      layer->name[i] = n[i];
-    layer->name[i] = '\0';
-    return;
-  }
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-/**************************************************************************************************
- Dense-Layers  */
-
-/* Add a layer to a network in progress.
-   It shall have 'inputs' inputs and 'nodes' nodes. */
-unsigned int add_Dense(unsigned int inputs, unsigned int nodes, NeuralNet* nn)
-  {
-    unsigned int i;
-
-    #ifdef __NEURON_DEBUG
-    printf("add_Dense(%d, %d)\n", inputs, nodes);
-    #endif
-
-    nn->denseLen++;
-    if(nn->denseLen == 1)                                           //  Expand the DenseLayer array
-      {
-        if((nn->denselayers = (DenseLayer*)malloc(sizeof(DenseLayer))) == NULL)
-          {
-            printf("ERROR: Unable to allocate DenseLayer array\n");
-            exit(1);
-          }
-      }
-    else
-      {
-        if((nn->denselayers = (DenseLayer*)realloc(nn->denselayers, nn->denseLen * sizeof(DenseLayer))) == NULL)
-          {
-            printf("ERROR: Unable to re-allocate DenseLayer array\n");
-            exit(1);
-          }
-      }
-
-    nn->denselayers[nn->denseLen - 1].i = inputs;                   //  Set this newest layer's inputs
-    nn->denselayers[nn->denseLen - 1].n = nodes;                    //  Set this newest layer's number of nodes
-                                                                    //  Allocate this newest layer's weight matrix
-    if((nn->denselayers[nn->denseLen - 1].W = (double*)malloc((inputs + 1) * nodes * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate DenseLayer's weight array\n");
-        exit(1);
-      }
-                                                                    //  Allocate this newest layer's mask matrix
-    if((nn->denselayers[nn->denseLen - 1].M = (double*)malloc((inputs + 1) * nodes * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate DenseLayer's mask array\n");
-        exit(1);
-      }
-                                                                    //  Allocate this newest layer's function-flag array
-    if((nn->denselayers[nn->denseLen - 1].f = (unsigned char*)malloc(nodes * sizeof(char))) == NULL)
-      {
-        printf("ERROR: Unable to allocate DenseLayer's function-flag array\n");
-        exit(1);
-      }
-                                                                    //  Allocate this newest layer's function-parameter array
-    if((nn->denselayers[nn->denseLen - 1].alpha = (double*)malloc(nodes * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate DenseLayer's function-parameter array\n");
-        exit(1);
-      }
-                                                                    //  Allocate output buffer
-    if((nn->denselayers[nn->denseLen - 1].out = (double*)malloc(nodes * sizeof(double))) == NULL)
-      {
-        printf("ERROR: Unable to allocate DenseLayer's internal output array\n");
-        exit(1);
-      }
-
-    for(i = 0; i < (inputs + 1) * nodes; i++)                       //  Generate random numbers in [ -1.0, 1.0 ]
-      {
-        nn->denselayers[nn->denseLen - 1].W[i] = -1.0 + ((double)rand() / ((double)RAND_MAX * 0.5));
-        nn->denselayers[nn->denseLen - 1].M[i] = 1.0;               //  All are UNmasked
-      }
-    for(i = 0; i < nodes; i++)                                      //  Default all to ReLU with parameter = 1.0
-      {
-        nn->denselayers[nn->denseLen - 1].f[i] = RELU;
-        nn->denselayers[nn->denseLen - 1].alpha[i] = 1.0;
-      }
-    for(i = 0; i < nodes; i++)                                      //  Blank out 'out' array
-      nn->denselayers[nn->denseLen - 1].out[i] = 0.0;
-    for(i = 0; i < LAYER_NAME_LEN; i++)                             //  Blank out layer name
-      nn->denselayers[nn->denseLen - 1].name[i] = '\0';
-
-    return nn->denseLen;
-  }
-
-/* Set entirety of layer's weight matrix.
-   Input buffer 'w' is expected to be ROW-MAJOR
-        weights W
-   [ w0  w1  w2  w3  ]
-   [ w4  w5  w6  w7  ]
-   [ w8  w9  w10 w11 ]
-   [ w12 w13 w14 w15 ]
-   [ w16 w17 w18 w19 ]  <--- biases
-*/
-void setW_Dense(double* w, DenseLayer* layer)
-  {
-    unsigned int i;
-
-    #ifdef __NEURON_DEBUG
-    printf("setW_Dense()\n");
-    #endif
-
-    for(i = 0; i < (layer->i + 1) * layer->n; i++)
-      layer->W[i] = w[i];
-    return;
-  }
-
-/* Set entirety of weights for i-th column/neuron/unit. */
-void setW_i_Dense(double* w, unsigned int i, DenseLayer* layer)
-  {
-    unsigned int j;
-
-    #ifdef __NEURON_DEBUG
-    printf("setW_i_Dense()\n");
-    #endif
-
-    for(j = 0; j <= layer->i; j++)
-      layer->W[j * layer->n + i] = w[j];
-    return;
-  }
-
-/* Set unit[i], weight[j] of the given layer */
-void setW_ij_Dense(double w, unsigned int i, unsigned int j, DenseLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setW_ij_Dense(%f, %d, %d)\n", w, i, j);
-    #endif
-
-    if(j * layer->n + i < (layer->i + 1) * layer->n)
-      layer->W[j * layer->n + i] = w;
-    return;
-  }
-
-/* Set entirety of layer's mask matrix
-   Input buffer 'm' is expected to be ROW-MAJOR
-        masks M
-   [ m0  m1  m2  m3  ]
-   [ m4  m5  m6  m7  ]
-   [ m8  m9  m10 m11 ]
-   [ m12 m13 m14 m15 ]
-   [ m16 m17 m18 m19 ]  <--- biases
-*/
-void setM_Dense(bool* m, DenseLayer* layer)
-  {
-    unsigned int i;
-
-    #ifdef __NEURON_DEBUG
-    printf("setM_Dense()\n");
-    #endif
-
-    for(i = 0; i < (layer->i + 1) * layer->n; i++)
-      {
-        if(m[i])                                                    //  TRUE means UNMASKED
-          layer->M[i] = 1.0;
-        else                                                        //  FALSE means MASKED
-          layer->M[i] = 0.0;
-      }
-    return;
-  }
-
-/* Set entirety of masks for i-th column/neuron/unit */
-void setM_i_Dense(bool* m, unsigned int i, DenseLayer* layer)
-  {
-    unsigned int j;
-
-    #ifdef __NEURON_DEBUG
-    printf("setM_i_Dense()\n");
-    #endif
-
-    for(j = 0; j <= layer->i; j++)
-      {
-        if(m[j])
-          layer->M[j * layer->n + i] = 1.0;
-        else
-          layer->M[j * layer->n + i] = 0.0;
-      }
-    return;
-  }
-
-/* Set unit[i], weight[j] of the given layer */
-void setM_ij_Dense(bool m, unsigned int i, unsigned int j, DenseLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    if(m)
-      printf("setM_ij_Dense(LIVE, %d, %d)\n", i, j);
-    else
-      printf("setM_ij_Dense(MASKED, %d, %d)\n", i, j);
-    #endif
-
-    if(j * layer->n + i < (layer->i + 1) * layer->n)
-      {
-        if(m)
-          layer->M[j * layer->n + i] = 1.0;
-        else
-          layer->M[j * layer->n + i] = 0.0;
-      }
-    return;
-  }
-
-/* Set the activation function for unit[i] of the given layer */
-void setF_i_Dense(unsigned char func, unsigned int i, DenseLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setF_i_Dense(%d, %d)\n", func, i);
-    #endif
-
-    if(i < layer->n)
-      layer->f[i] = func;
-    return;
-  }
-
-/* Set the activation function parameter for unit[i] of the given layer */
-void setA_i_Dense(double a, unsigned int i, DenseLayer* layer)
-  {
-    #ifdef __NEURON_DEBUG
-    printf("setA_i_Dense(%f, %d)\n", a, i);
-    #endif
-
-    if(i < layer->n)
-      layer->alpha[i] = a;
-    return;
-  }
-
-/* Set the name of the given Dense Layer */
-void setName_Dense(char* n, DenseLayer* layer)
-  {
-    unsigned char i;
-    unsigned char lim;
-    lim = (strlen(n) < LAYER_NAME_LEN) ? strlen(n) : LAYER_NAME_LEN;
-    for(i = 0; i < lim; i++)
-      layer->name[i] = n[i];
-    layer->name[i] = '\0';
-    return;
-  }
-
-/* Print the details of the given DenseLayer 'layer' */
-void print_Dense(DenseLayer* layer)
-  {
     unsigned int i, j;
 
-    #ifdef __NEURON_DEBUG
-    printf("print_Dense()\n");
-    #endif
-
-    for(i = 0; i < layer->i + 1; i++)
+    for(i = 0; i < normalLen; i++)
       {
-        if(i == layer->i)
-          printf("bias [");
-        else
-          printf("     [");
-        for(j = 0; j < layer->n; j++)
+                                                                    //  Allocate buffers for reading this type of layer
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
           {
-            if(layer->W[j * (layer->i + 1) + i] >= 0.0)
-              printf(" %.5f ", layer->W[j * (layer->i + 1) + i]);
-            else
-              printf("%.5f ", layer->W[j * (layer->i + 1) + i]);
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            return false;
           }
-        printf("]\n");
-      }
-    printf("f = [");
-    for(i = 0; i < layer->n; i++)
-      {
-        switch(layer->f[i])
+        if((uintBuffer = (unsigned int*)malloc(sizeof(int))) == NULL)
           {
-            case RELU:                printf("ReLU   ");  break;
-            case LEAKY_RELU:          printf("L.ReLU ");  break;
-            case SIGMOID:             printf("Sig.   ");  break;
-            case HYPERBOLIC_TANGENT:  printf("tanH   ");  break;
-            case SOFTMAX:             printf("SoftMx ");  break;
-            case SYMMETRICAL_SIGMOID: printf("SymSig ");  break;
-            case THRESHOLD:           printf("Thresh ");  break;
-            case LINEAR:              printf("Linear ");  break;
+            printf("ERROR: Unable to allocate unsigned int buffer for reading from file\n");
+            free(ucharBuffer);
+            return false;
           }
-      }
-    printf("]\n");
-    printf("a = [");
-    for(i = 0; i < layer->n; i++)
-      printf("%.4f ", layer->alpha[i]);
-    printf("]\n");
+        if((doubleBuffer = (double*)malloc(4 * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer while reading from file\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 1
+                                                                    //  doubleBuffer --> 4
+        if(fread(uintBuffer, sizeof(int), 1, fp) != 1)              //  Read 1 object of size int into buffer
+          {
+            printf("ERROR: Unable to read Normal Layer int parameter into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if(fread(doubleBuffer, sizeof(double), 4, fp) != 4)         //  Read 4 objects of size double into buffer
+          {
+            printf("ERROR: Unable to read Normal Layer double parameters into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
 
-    return;
+        normlayers[i].i = uintBuffer[0];                            //  Read number of inputs for NormalLayer[i] from buffer
+
+        normlayers[i].m = doubleBuffer[0];                          //  Read mean for NormalLayer[i] from buffer
+        normlayers[i].s = doubleBuffer[1];                          //  Read standard deviation height for NormalLayer[i] from buffer
+        normlayers[i].g = doubleBuffer[2];                          //  Read coefficient for NormalLayer[i] from buffer
+        normlayers[i].b = doubleBuffer[3];                          //  Read constant for NormalLayer[i] from buffer
+
+        #ifdef __NEURON_DEBUG
+        printf("  normlayers[%d].i = %d\n", i, normlayers[i].i);
+        printf("  normlayers[%d].m = %f\n", i, normlayers[i].m);
+        printf("  normlayers[%d].s = %f\n", i, normlayers[i].s);
+        printf("  normlayers[%d].g = %f\n", i, normlayers[i].g);
+        printf("  normlayers[%d].b = %f\n", i, normlayers[i].b);
+        #endif
+
+        if((normlayers[i].out = (double*)malloc(normlayers[i].i * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate output array while reading NormalLayer[%d] from file\n", i);
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < normlayers[i].i; j++)                        //  Allocate and blank out output array
+          normlayers[i].out[j] = 0.0;
+                                                                    //  Read LAYER_NAME_LEN objects of size char to buffer
+        if(fread(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to read Normal Layer name into buffer\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Read layer name
+          normlayers[i].name[j] = ucharBuffer[j];
+        #ifdef __NEURON_DEBUG
+        printf("  normlayers[%d].name = %s\n\n", i, normlayers[i].name);
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
+      }
+
+    return true;
   }
 
-/* Return the layer's output length
-   (For Dense layers, this is the number of units) */
-unsigned int outputLen_Dense(DenseLayer* layer)
+bool write_Normal(NormalLayer* normlayers, unsigned int normalLen, FILE* fp)
   {
-    #ifdef __NEURON_DEBUG
-    printf("outputLen_Dense()\n");
-    #endif
+    unsigned char* ucharBuffer;
+    unsigned int* uintBuffer;
+    double* doubleBuffer;
 
-    return layer->n;
-  }
+    unsigned int i, j;
 
-/* Run the given input vector 'x' of length 'layer'->'i' through the DenseLayer 'layer'.
-   Output is stored internally in layer->out. */
-unsigned int run_Dense(double* x, DenseLayer* layer)
-  {
-                                                                    //  Input vector augmented with additional (bias) 1.0
-    double* xprime;                                                 //  (1 * (length-of-input + 1))
-    double* Wprime;                                                 //  ((length-of-input + 1) * nodes)
-    double softmaxdenom = 0.0;                                      //  Accumulate exp()'s to normalize any softmax
-    unsigned int i;
-    enum CBLAS_ORDER order;
-    enum CBLAS_TRANSPOSE transa;
-
-    #ifdef __NEURON_DEBUG
-    printf("run_Dense(%d)\n", layer->i);
-    #endif
-
-    order = CblasRowMajor;                                          //  Describe how the data in W are stored
-    transa = CblasTrans;
-
-    if((xprime = (double*)malloc((layer->i + 1) * sizeof(double))) == NULL)
+    for(i = 0; i < normalLen; i++)
       {
-        printf("ERROR: Unable to allocate augmented input vector\n");
-        exit(1);
-      }
-    for(i = 0; i < layer->i; i++)                                   //  Append 1.0 to input vector
-      xprime[i] = x[i];
-    xprime[i] = 1.0;
-                                                                    //  Allocate W' matrix
-    if((Wprime = (double*)malloc((layer->i + 1) * layer->n * sizeof(double))) == NULL)
-      {
-        free(xprime);
-        printf("ERROR: Unable to allocate masked-weight matrix\n");
-        exit(1);
-      }
-
-    //                       weights W                                                  masks M
-    //     i = 0 ----------------------------> layer->nodes        i = 0 ----------------------------> layer->nodes
-    //   j   [ A+0      A+((len+1)*i)        A+((len+1)*i)+j ]   j   [ A+0      A+((len+1)*i)        A+((len+1)*i)+j ]
-    //   |   [ A+1      A+((len+1)*i)+1      A+((len+1)*i)+j ]   |   [ A+1      A+((len+1)*i)+1      A+((len+1)*i)+j ]
-    //   |   [ A+2      A+((len+1)*i)+2      A+((len+1)*i)+j ]   |   [ A+2      A+((len+1)*i)+2      A+((len+1)*i)+j ]
-    //   |   [ ...      ...                  ...             ]   |   [ ...      ...                  ...             ]
-    //   V   [ A+len    A+((len+1)*i)+len    A+((len+1)*i)+j ]   V   [ A+len    A+((len+1)*i)+len    A+((len+1)*i)+j ]
-    // len+1 [ A+len+1  A+((len+1)*i)+len+1  A+((len+1)*i)+j ] len+1 [  1        1                    1              ]
-    for(i = 0; i < (layer->i + 1) * layer->n; i++)                  //  Broadcast weights and masks into W'
-      Wprime[i] = layer->W[i] * layer->M[i];
-                                                                    //  Dot-product xprime Wprime ---> layer->out
-    cblas_dgemv(order,                                              //  The order in which data in Wprime are stored
-                transa,                                             //  Transpose
-                layer->i + 1,                                       //  Number of ROWS in Wprime = number of inputs + 1 row of biases
-                layer->n,                                           //  Number of COLUMNS in Wprime = number of layer units
-                1.0,                                                //  alpha (ignore this)
-                Wprime,
-                layer->n,                                           //  Stride in Wprime equals the number of COLUMNS when order == CblasRowMajor
-                xprime, 1, 0.0, layer->out, 1);
-
-    for(i = 0; i < layer->n; i++)                                   //  In case one of the units is a softmax unit,
-      softmaxdenom += pow(M_E, layer->out[i]);                      //  compute all exp()'s so we can sum them.
-
-    for(i = 0; i < layer->n; i++)                                   //  Run each element in out through appropriate function
-      {                                                             //  with corresponding parameter
-        switch(layer->f[i])
+                                                                    //  Allocate buffers for reading this type of layer
+        if((ucharBuffer = (unsigned char*)malloc(LAYER_NAME_LEN * sizeof(char))) == NULL)
           {
-            case RELU:                 layer->out[i] = (layer->out[i] > 0.0) ? layer->out[i] : 0.0;
-                                       break;
-            case LEAKY_RELU:           layer->out[i] = (layer->out[i] > layer->out[i] * layer->alpha[i]) ? layer->out[i] : layer->alpha[i];
-                                       break;
-            case SIGMOID:              layer->out[i] = 1.0 / (1.0 + pow(M_E, -layer->out[i] * layer->alpha[i]));
-                                       break;
-            case HYPERBOLIC_TANGENT:   layer->out[i] = (2.0 / (1.0 + pow(M_E, -2.0 * layer->out[i] * layer->alpha[i]))) - 1.0;
-                                       break;
-            case SOFTMAX:              layer->out[i] = pow(M_E, layer->out[i]) / softmaxdenom;
-                                       break;
-            case SYMMETRICAL_SIGMOID:  layer->out[i] = (1.0 - pow(M_E, -layer->out[i] * layer->alpha[i])) / (1.0 + pow(M_E, -layer->out[i] * layer->alpha[i]));
-                                       break;
-            case THRESHOLD:            layer->out[i] = (layer->out[i] > layer->alpha[i]) ? 1.0 : 0.0;
-                                       break;
-                                                                    //  (Includes LINEAR)
-            default:                   layer->out[i] *= layer->alpha[i];
+            printf("ERROR: Unable to allocate unsigned char buffer for reading from file\n");
+            return false;
           }
+        if((uintBuffer = (unsigned int*)malloc(sizeof(int))) == NULL)
+          {
+            printf("ERROR: Unable to allocate unsigned int buffer for writing to file\n");
+            free(ucharBuffer);
+            return false;
+          }
+        if((doubleBuffer = (double*)malloc(4 * sizeof(double))) == NULL)
+          {
+            printf("ERROR: Unable to allocate double buffer while writing to file\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            return false;
+          }
+                                                                    //  ucharBuffer  --> LAYER_NAME_LEN
+                                                                    //  uintBuffer   --> 1
+                                                                    //  doubleBuffer --> 4
+        uintBuffer[0] = normlayers[i].i;                            //  Copy number of inputs for NormalLayer[i] to buffer
+
+        doubleBuffer[0] = normlayers[i].m;                          //  Copy mean for NormalLayer[i] to buffer
+        doubleBuffer[1] = normlayers[i].s;                          //  Copy standard deviation height for NormalLayer[i] to buffer
+        doubleBuffer[2] = normlayers[i].g;                          //  Copy coefficient for NormalLayer[i] to buffer
+        doubleBuffer[3] = normlayers[i].b;                          //  Copy constant for NormalLayer[i] to buffer
+        for(j = 0; j < LAYER_NAME_LEN; j++)                         //  Copy layer name
+          ucharBuffer[j] = normlayers[i].name[j];
+
+        if(fwrite(uintBuffer, sizeof(int), 1, fp) != 1)             //  From buffer, write 1 object of size int
+          {
+            printf("ERROR: Unable to write unsigned int buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        if(fwrite(doubleBuffer, sizeof(double), 4, fp) != 4)        //  From buffer, write 4 objects of size double
+          {
+            printf("ERROR: Unable to write double buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+                                                                    //  From buffer, write LAYER_NAME_LEN objects of size char
+        if(fwrite(ucharBuffer, sizeof(char), LAYER_NAME_LEN, fp) != LAYER_NAME_LEN)
+          {
+            printf("ERROR: Unable to write unsigned char buffer to file.\n");
+            free(ucharBuffer);
+            free(uintBuffer);
+            free(doubleBuffer);
+            return false;
+          }
+        #ifdef __NEURON_DEBUG
+        printf("  normlayers[%d].i = %d\n", i, uintBuffer[0]);
+        printf("  normlayers[%d].m = %.6f\n", i, doubleBuffer[0]);
+        printf("  normlayers[%d].s = %.6f\n", i, doubleBuffer[1]);
+        printf("  normlayers[%d].g = %.6f\n", i, doubleBuffer[2]);
+        printf("  normlayers[%d].b = %.6f\n", i, doubleBuffer[3]);
+        printf("  normlayers[%d].name = ", i);
+        for(j = 0; j < LAYER_NAME_LEN; j++)
+          {
+            if(ucharBuffer[j] > 0)
+              printf("%c", ucharBuffer[j]);
+          }
+        printf("\n");
+        #endif
+
+        free(ucharBuffer);                                          //  ucharBuffer  --> 0
+        free(uintBuffer);                                           //  uintBuffer   --> 0
+        free(doubleBuffer);                                         //  doubleBuffer --> 0
       }
 
-    free(xprime);
-    free(Wprime);
-
-    return layer->n;                                                //  Return the length of layer->out
+    return true;
   }
 
 #endif
