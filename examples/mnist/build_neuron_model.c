@@ -6,8 +6,6 @@
   Your C code will necessarily exhibit knowledge of the Keras model you exported to weights.
   The command-line argument argv[1] is assumed to be the directory containing these weights.
 
-  gcc -c -Wall build_neuron_model.c
-  gfortran -o build_neuron_model build_neuron_model.o cblas_LINUX.a libblas.a
   ./build_neuron_model 01
 */
 
