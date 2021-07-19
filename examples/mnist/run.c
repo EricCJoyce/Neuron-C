@@ -8,8 +8,6 @@
   Input this floating-point buffer to the neural network.
   Print each of the 10 output values.
 
-  gcc -c -Wall run.c
-  gfortran -o run run.o cblas_LINUX.a libblas.a
   ./run mnist.nn samples/sample_1.pgm
 */
 
