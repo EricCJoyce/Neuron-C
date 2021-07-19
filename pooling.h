@@ -290,7 +290,6 @@ unsigned int run_Pool2D(double* xvec, Pool2DLayer* layer)
     unsigned int ctr;                                               //  Only used in median pooling
     unsigned int x, y;                                              //  2D input iterators
     unsigned int m, n;                                              //  2D pool iterators
-    unsigned int outlen;                                            //  Length of the output vector
 
     double* cache;                                                  //  Intermediate buffer
     unsigned int cacheLen;                                          //  Length of that buffer
@@ -301,8 +300,6 @@ unsigned int run_Pool2D(double* xvec, Pool2DLayer* layer)
     #ifdef __NEURON_DEBUG
     printf("run_Pool2D(%d, %d)\n", layer->inputW, layer->inputH);
     #endif
-
-    outlen = outputLen_Pool2D(layer);
 
     for(i = 0; i < layer->n; i++)                                   //  For each pool
       {
@@ -400,7 +397,7 @@ unsigned int run_Pool2D(double* xvec, Pool2DLayer* layer)
           }
       }
 
-    return outlen;
+    return layer->outlen;
   }
 
 void pooling_quicksort(bool desc, double** a, unsigned int lo, unsigned int hi)
