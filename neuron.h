@@ -2189,7 +2189,7 @@ void sortEdges(NeuralNet* nn)
     printf("sortEdges()\n");
     #endif
 
-    listlen = nn->denseLen + nn->convLen + nn->accumLen + nn->lstmLen + nn->gruLen + 1;
+    listlen = nn->denseLen + nn->convLen + nn->accumLen + nn->lstmLen + nn->gruLen + nn->poolLen + nn->upresLen + nn->normalLen + 1;
     if((nodelist = (Node*)malloc(listlen * sizeof(Node))) == NULL)  //  Allocate an array of Nodes (type, index)
       {
         printf("ERROR: Unable to allocate node array\n");
