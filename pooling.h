@@ -364,9 +364,9 @@ unsigned int run_Pool2D(double* xvec, Pool2DLayer* layer)
                                 }
                               cacheLenEven = (cacheLen % 2 == 0);
                               if(cacheLenEven)
-                                index = cacheLenEven / 2 - 1;
+                                index = cacheLen / 2 - 1;
                               else
-                                index = (cacheLenEven - 1) / 2;
+                                index = (cacheLen - 1) / 2;
 
                               for(y = 0; y <= layer->inputH - layer->pools[i].h; y += layer->pools[i].stride_v)
                                 {
