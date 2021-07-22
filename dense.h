@@ -257,10 +257,10 @@ void print_Dense(DenseLayer* layer)
           printf("     [");
         for(j = 0; j < layer->n; j++)
           {
-            if(layer->W[j * (layer->i + 1) + i] >= 0.0)
-              printf(" %.5f ", layer->W[j * (layer->i + 1) + i]);
+            if(layer->W[i * layer->n + j] >= 0.0)
+              printf(" %.5f ", layer->W[i * layer->n + j]);
             else
-              printf("%.5f ", layer->W[j * (layer->i + 1) + i]);
+              printf("%.5f ", layer->W[i * layer->n + j]);
           }
         printf("]\n");
       }
