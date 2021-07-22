@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
     printf("\n");
     sortEdges(nn);
     printEdgeList(nn);                                              //  Show me all the connections
+    sprintf(nn->comment, "Two-input network performs XOR");
     print_NN(nn);                                                   //  Summarize the network
 
     write_NN("xor.nn", nn);                                         //  Write the network to file
