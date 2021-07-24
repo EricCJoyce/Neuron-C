@@ -333,27 +333,27 @@ void print_GRU(GRULayer* layer)
     printf("State cache size       = %d\n", layer->cache);
 
     printf("Wz (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wz[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wz[i * layer->d + j]);
         printf(" ]\n");
       }
     printf("Wr (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wr[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wr[i * layer->d + j]);
         printf(" ]\n");
       }
     printf("Wh (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wh[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wh[i * layer->d + j]);
         printf(" ]\n");
       }
 
