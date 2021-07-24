@@ -406,35 +406,35 @@ void print_LSTM(LSTMLayer* layer)
     printf("State cache size       = %d\n", layer->cache);
 
     printf("Wi (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wi[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wi[i * layer->d + j]);
         printf(" ]\n");
       }
     printf("Wf (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wf[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wf[i * layer->d + j]);
         printf(" ]\n");
       }
     printf("Wc (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wc[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wc[i * layer->d + j]);
         printf(" ]\n");
       }
     printf("Wo (%d x %d)\n", layer->h, layer->d);
-    for(i = 0; i < layer->d; i++)
+    for(i = 0; i < layer->h; i++)
       {
         printf("[");
-        for(j = 0; j < layer->h; j++)
-          printf(" %.5f", layer->Wo[i * layer->h + j]);
+        for(j = 0; j < layer->d; j++)
+          printf(" %.5f", layer->Wo[i * layer->d + j]);
         printf(" ]\n");
       }
 
