@@ -153,8 +153,8 @@ void setWz_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setWz_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wz[i * layer->h + j] = w;
+    if(j * layer->d + i < layer->h * layer->d)
+      layer->Wz[j * layer->d + i] = w;
     return;
   }
 
@@ -165,8 +165,8 @@ void setWr_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setWr_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wr[i * layer->h + j] = w;
+    if(j * layer->d + i < layer->h * layer->d)
+      layer->Wr[j * layer->d + i] = w;
     return;
   }
 
@@ -177,8 +177,8 @@ void setWh_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setWh_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wh[i * layer->h + j] = w;
+    if(j * layer->d + i < layer->h * layer->d)
+      layer->Wh[j * layer->d + i] = w;
     return;
   }
 
@@ -216,8 +216,8 @@ void setUz_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setUz_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uz[i * layer->h + j] = w;
+    if(j * layer->h + i < layer->h * layer->h)
+      layer->Uz[j * layer->h + i] = w;
     return;
   }
 
@@ -228,8 +228,8 @@ void setUr_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setUr_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Ur[i * layer->h + j] = w;
+    if(j * layer->h + i < layer->h * layer->h)
+      layer->Ur[j * layer->h + i] = w;
     return;
   }
 
@@ -240,8 +240,8 @@ void setUh_ij_GRU(double w, unsigned int i, unsigned int j, GRULayer* layer)
     printf("setUh_ij_GRU(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->h)
-      layer->Uh[i * layer->h + j] = w;
+    if(j * layer->h + i < layer->h * layer->h)
+      layer->Uh[j * layer->h + i] = w;
     return;
   }
 
