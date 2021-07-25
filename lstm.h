@@ -172,8 +172,8 @@ void setWi_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     printf("setWi_ij_LSTM(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wi[i * layer->h + j] = w;
+    if(i * layer->d + j < layer->h * layer->d)
+      layer->Wi[j * layer->d + i] = w;
     return;
   }
 
@@ -184,8 +184,8 @@ void setWo_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     printf("setWo_ij_LSTM(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wo[i * layer->h + j] = w;
+    if(i * layer->d + j < layer->h * layer->d)
+      layer->Wo[j * layer->d + i] = w;
     return;
   }
 
@@ -196,8 +196,8 @@ void setWf_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     printf("setWf_ij_LSTM(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wf[i * layer->h + j] = w;
+    if(i * layer->d + j < layer->h * layer->d)
+      layer->Wf[j * layer->d + i] = w;
     return;
   }
 
@@ -208,8 +208,8 @@ void setWc_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     printf("setWc_ij_LSTM(%f, %d, %d)\n", w, i, j);
     #endif
 
-    if(i * layer->h + j < layer->h * layer->d)
-      layer->Wc[i * layer->h + j] = w;
+    if(j * layer->d + i < layer->h * layer->d)
+      layer->Wc[j * layer->d + i] = w;
     return;
   }
 
@@ -257,7 +257,7 @@ void setUi_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     #endif
 
     if(i * layer->h + j < layer->h * layer->h)
-      layer->Ui[i * layer->h + j] = w;
+      layer->Ui[j * layer->h + i] = w;
     return;
   }
 
@@ -269,7 +269,7 @@ void setUo_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     #endif
 
     if(i * layer->h + j < layer->h * layer->h)
-      layer->Uo[i * layer->h + j] = w;
+      layer->Uo[j * layer->h + i] = w;
     return;
   }
 
@@ -281,7 +281,7 @@ void setUf_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     #endif
 
     if(i * layer->h + j < layer->h * layer->h)
-      layer->Uf[i * layer->h + j] = w;
+      layer->Uf[j * layer->h + i] = w;
     return;
   }
 
@@ -293,7 +293,7 @@ void setUc_ij_LSTM(double w, unsigned int i, unsigned int j, LSTMLayer* layer)
     #endif
 
     if(i * layer->h + j < layer->h * layer->h)
-      layer->Uc[i * layer->h + j] = w;
+      layer->Uc[j * layer->h + i] = w;
     return;
   }
 
