@@ -422,7 +422,7 @@ unsigned int run_NN(double* x, NeuralNet* nn, double** z)
                                        for(l = nn->edgelist[j].selectorStart; l < nn->edgelist[j].selectorEnd; l++)
                                          {
                                                                     //  Read from the LAST time step
-                                           in[k] = nn->lstmlayers[nn->edgelist[j].srcIndex].H[ t * nn->lstmlayers[nn->edgelist[j].srcIndex].h + l];
+                                           in[k] = nn->lstmlayers[nn->edgelist[j].srcIndex].H[ l * nn->lstmlayers[nn->edgelist[j].srcIndex].cache + t ];
                                            k++;
                                          }
                                        break;
@@ -434,7 +434,7 @@ unsigned int run_NN(double* x, NeuralNet* nn, double** z)
                                        for(l = nn->edgelist[j].selectorStart; l < nn->edgelist[j].selectorEnd; l++)
                                          {
                                                                     //  Read from the LAST time step
-                                           in[k] = nn->grulayers[nn->edgelist[j].srcIndex].H[ t * nn->grulayers[nn->edgelist[j].srcIndex].h + l];
+                                           in[k] = nn->grulayers[nn->edgelist[j].srcIndex].H[ l * nn->grulayers[nn->edgelist[j].srcIndex].cache + t ];
                                            k++;
                                          }
                                        break;
@@ -4730,13 +4730,13 @@ bool write_LSTM(LSTMLayer* lstmlayers, unsigned int lstmLen, FILE* fp)
         for(j = 0; j < len; j++)
           doubleBuffer[j] = lstmlayers[i].Wi[j];                    //  Copy Wi to buffer
         if(fwrite(doubleBuffer, sizeof(double), len, fp) != len)    //  From buffer, write 'len' objects of size double
-        #ifdef __NEURON_DEBUG
           {
             printf("ERROR: Unable to write double buffer to file.\n");
             free(uintBuffer);
             free(doubleBuffer);
             return false;
           }
+        #ifdef __NEURON_DEBUG
         for(j = 0; j < len; j++)
           printf("  lstmlayers[%d].Wi[%d] = %.4f\n", i, j, doubleBuffer[j]);
         #endif
