@@ -340,7 +340,7 @@ void print_GRU(GRULayer* layer)
           printf(" %.5f", layer->Wz[i * layer->d + j]);
         printf(" ]\n");
       }
-    printf("Wr (%d x %d)\n", layer->h, layer->d);
+    printf("\nWr (%d x %d)\n", layer->h, layer->d);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -348,7 +348,7 @@ void print_GRU(GRULayer* layer)
           printf(" %.5f", layer->Wr[i * layer->d + j]);
         printf(" ]\n");
       }
-    printf("Wh (%d x %d)\n", layer->h, layer->d);
+    printf("\nWh (%d x %d)\n", layer->h, layer->d);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -357,7 +357,7 @@ void print_GRU(GRULayer* layer)
         printf(" ]\n");
       }
 
-    printf("Uz (%d x %d)\n", layer->h, layer->h);
+    printf("\nUz (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -365,7 +365,7 @@ void print_GRU(GRULayer* layer)
           printf(" %.5f", layer->Uz[i * layer->h + j]);
         printf(" ]\n");
       }
-    printf("Ur (%d x %d)\n", layer->h, layer->h);
+    printf("\nUr (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -373,7 +373,7 @@ void print_GRU(GRULayer* layer)
           printf(" %.5f", layer->Ur[i * layer->h + j]);
         printf(" ]\n");
       }
-    printf("Uh (%d x %d)\n", layer->h, layer->h);
+    printf("\nUh (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -382,13 +382,13 @@ void print_GRU(GRULayer* layer)
         printf(" ]\n");
       }
 
-    printf("bz (%d x 1)\n", layer->h);
+    printf("\nbz (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bz[i]);
-    printf("br (%d x 1)\n", layer->h);
+    printf("\nbr (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->br[i]);
-    printf("bh (%d x 1)\n", layer->h);
+    printf("\nbh (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bh[i]);
 
@@ -422,7 +422,7 @@ unsigned int run_GRU(double* x, GRULayer* layer)
     printf("run_GRU(%d)\n", layer->h);
     #endif
 
-    order = CblasColMajor;
+    order = CblasRowMajor;
     transa = CblasTrans;
 
     if((z = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{z}
@@ -473,7 +473,7 @@ unsigned int run_GRU(double* x, GRULayer* layer)
             t = layer->t;                                           //  Write to the targeted column
           }
         for(n = 0; n < layer->h; n++)
-          ht_1[n] = layer->H[ t_1 * layer->h + n ];
+          ht_1[n] = layer->H[ n * layer->cache + t_1 ];
       }
 
     for(n = 0; n < layer->h; n++)                                   //  Write biases to vectors z and r
@@ -531,14 +531,14 @@ unsigned int run_GRU(double* x, GRULayer* layer)
         for(m = 1; m < layer->cache; m++)                           //  Shift down
           {
             for(n = 0; n < layer->h; n++)
-              layer->H[(m - 1) * layer->h + n] = layer->H[m * layer->h + n];
+              layer->H[n * layer->cache + m - 1] = layer->H[n * layer->cache + m];
           }
       }
 
     for(n = 0; n < layer->h; n++)
       {
                                                                     //  h = z*ht_1 + (1-z)*tanh(h)
-        layer->H[ t * layer->h + n ] = z[n] * ht_1[n] + (1.0 - z[n]) * ((2.0 / (1.0 + pow(M_E, -2.0 * h[n]))) - 1.0);
+        layer->H[ n * layer->cache + t ] = z[n] * ht_1[n] + (1.0 - z[n]) * ((2.0 / (1.0 + pow(M_E, -2.0 * h[n]))) - 1.0);
       }
 
     free(z);
