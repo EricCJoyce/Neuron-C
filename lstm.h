@@ -413,7 +413,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Wi[i * layer->d + j]);
         printf(" ]\n");
       }
-    printf("Wf (%d x %d)\n", layer->h, layer->d);
+    printf("\nWf (%d x %d)\n", layer->h, layer->d);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -421,7 +421,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Wf[i * layer->d + j]);
         printf(" ]\n");
       }
-    printf("Wc (%d x %d)\n", layer->h, layer->d);
+    printf("\nWc (%d x %d)\n", layer->h, layer->d);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -429,7 +429,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Wc[i * layer->d + j]);
         printf(" ]\n");
       }
-    printf("Wo (%d x %d)\n", layer->h, layer->d);
+    printf("\nWo (%d x %d)\n", layer->h, layer->d);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -438,7 +438,7 @@ void print_LSTM(LSTMLayer* layer)
         printf(" ]\n");
       }
 
-    printf("Ui (%d x %d)\n", layer->h, layer->h);
+    printf("\nUi (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -446,7 +446,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Ui[i * layer->h + j]);
         printf(" ]\n");
       }
-    printf("Uf (%d x %d)\n", layer->h, layer->h);
+    printf("\nUf (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -454,7 +454,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Uf[i * layer->h + j]);
         printf(" ]\n");
       }
-    printf("Uc (%d x %d)\n", layer->h, layer->h);
+    printf("\nUc (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -462,7 +462,7 @@ void print_LSTM(LSTMLayer* layer)
           printf(" %.5f", layer->Uc[i * layer->h + j]);
         printf(" ]\n");
       }
-    printf("Uo (%d x %d)\n", layer->h, layer->h);
+    printf("\nUo (%d x %d)\n", layer->h, layer->h);
     for(i = 0; i < layer->h; i++)
       {
         printf("[");
@@ -471,16 +471,16 @@ void print_LSTM(LSTMLayer* layer)
         printf(" ]\n");
       }
 
-    printf("bi (%d x 1)\n", layer->h);
+    printf("\nbi (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bi[i]);
-    printf("bf (%d x 1)\n", layer->h);
+    printf("\nbf (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bf[i]);
-    printf("bc (%d x 1)\n", layer->h);
+    printf("\nbc (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bc[i]);
-    printf("bo (%d x 1)\n", layer->h);
+    printf("\nbo (%d x 1)\n", layer->h);
     for(i = 0; i < layer->h; i++)
       printf("[ %.5f ]\n", layer->bo[i]);
 
@@ -499,12 +499,13 @@ unsigned int outputLen_LSTM(LSTMLayer* layer)
 unsigned int run_LSTM(double* x, LSTMLayer* layer)
   {
     unsigned int n, m;
-    double* i;
+    double* i;                                                      //  These act as accumulator vectors
     double* f;
-    double* c;                                                      //  Time t
+    double* c;                                                      //  Time t (c-tilde in the equation)
     double* o;
     double* ct_1;                                                   //  Time t - 1
     double* ht_1;                                                   //  Time t - 1
+
     unsigned int t_1;                                               //  Where we READ FROM
     unsigned int t;                                                 //  Where we WRITE TO
                                                                     //  layer->t increases indefinitely
@@ -515,7 +516,7 @@ unsigned int run_LSTM(double* x, LSTMLayer* layer)
     printf("run_LSTM(%d)\n", layer->h);
     #endif
 
-    order = CblasColMajor;
+    order = CblasRowMajor;
     transa = CblasTrans;
 
     if((i = (double*)malloc(layer->h * sizeof(double))) == NULL)    //  Allocate vec{i}
@@ -574,10 +575,17 @@ unsigned int run_LSTM(double* x, LSTMLayer* layer)
           }
         for(n = 0; n < layer->h; n++)
           {
-            ht_1[n] = layer->H[ t_1 * layer->h + n ];
+            ht_1[n] = layer->H[ n * layer->cache + t_1 ];
             ct_1[n] = layer->c[n];
           }
       }
+
+    //  f_t  = sig_g(W_f * x_t + U_f * h_{t-1} + b_f)
+    //  i_t  = sig_g(W_i * x_t + U_i * h_{t-1} + b_i)
+    //  o_t  = sig_g(W_o * x_t + U_o * h_{t-1} + b_o)
+    //  c~_t = sig_c(W_c * x_t + U_c * h_{t-1} + b_c)
+    //  c_t  = f_t Hadamard c_{t-1} + i_t Hadamard c~_t
+    //  h_t  = o_t Hadamard sig_h(c_t)
 
     for(n = 0; n < layer->h; n++)                                   //  Write biases to vectors
       {
@@ -586,34 +594,34 @@ unsigned int run_LSTM(double* x, LSTMLayer* layer)
         c[n] = layer->bc[n];
         o[n] = layer->bo[n];
       }
-                                                                    //  Add Ui dot ht_1 to i
+                                                                    //  Add Ui dot ht_1 to i (i = U_i * h_{t-1} + b_i)
     cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Ui, layer->h, ht_1, 1, 1.0, i, 1);
-                                                                    //  Add Uf dot ht_1 to f
+                                                                    //  Add Uf dot ht_1 to f (f = U_f * h_{t-1} + b_f)
     cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uf, layer->h, ht_1, 1, 1.0, f, 1);
-                                                                    //  Add Uc dot ht_1 to c
+                                                                    //  Add Uc dot ht_1 to c (c = U_c * h_{t-1} + b_c)
     cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uc, layer->h, ht_1, 1, 1.0, c, 1);
-                                                                    //  Add Uo dot ht_1 to o
+                                                                    //  Add Uo dot ht_1 to o (o = U_o * h_{t-1} + b_o)
     cblas_dgemv(order, transa, layer->h, layer->h, 1.0, layer->Uo, layer->h, ht_1, 1, 1.0, o, 1);
 
-    if(layer->d == 1)
+    if(layer->d == 1)                                               //  Special case when input has dimension 1
       {
         for(n = 0; n < layer->h; n++)
           {
-            i[n] += layer->Wi[n] * x[0];                            //  Add Wi dot x to i
-            f[n] += layer->Wf[n] * x[0];                            //  Add Wf dot x to f
-            c[n] += layer->Wc[n] * x[0];                            //  Add Wc dot x to c
-            o[n] += layer->Wo[n] * x[0];                            //  Add Wo dot x to o
+            i[n] += layer->Wi[n] * x[0];                            //  Add Wi dot x to i (i = W_i * x_t + U_i * h_{t-1} + b_i)
+            f[n] += layer->Wf[n] * x[0];                            //  Add Wf dot x to f (f = W_f * x_t + U_f * h_{t-1} + b_f)
+            c[n] += layer->Wc[n] * x[0];                            //  Add Wc dot x to c (c = W_c * x_t + U_c * h_{t-1} + b_c)
+            o[n] += layer->Wo[n] * x[0];                            //  Add Wo dot x to o (o = W_o * x_t + U_o * h_{t-1} + b_o)
           }
       }
     else
       {
-                                                                    //  Add Wi dot x to i
+                                                                    //  Add Wi dot x to i (i = W_i * x_t + U_i * h_{t-1} + b_i)
         cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wi, layer->h, x, 1, 1.0, i, 1);
-                                                                    //  Add Wf dot x to f
+                                                                    //  Add Wf dot x to f (f = W_f * x_t + U_f * h_{t-1} + b_f)
         cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wf, layer->h, x, 1, 1.0, f, 1);
-                                                                    //  Add Wc dot x to c
+                                                                    //  Add Wc dot x to c (c = W_c * x_t + U_c * h_{t-1} + b_c)
         cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wc, layer->h, x, 1, 1.0, c, 1);
-                                                                    //  Add Wo dot x to o
+                                                                    //  Add Wo dot x to o (o = W_o * x_t + U_o * h_{t-1} + b_o)
         cblas_dgemv(order, transa, layer->h, layer->d, 1.0, layer->Wo, layer->h, x, 1, 1.0, o, 1);
       }
 
@@ -624,19 +632,19 @@ unsigned int run_LSTM(double* x, LSTMLayer* layer)
         for(m = 1; m < layer->cache; m++)                           //  Shift down
           {
             for(n = 0; n < layer->h; n++)
-              layer->H[(m - 1) * layer->h + n] = layer->H[m * layer->h + n];
+              layer->H[n * layer->cache + m - 1] = layer->H[n * layer->cache + m];
           }
       }
 
     for(n = 0; n < layer->h; n++)
       {
-        i[n] = 1.0 / (1.0 + pow(M_E, -i[n]));                       //  i = sig(Wi*x + Ui*ht_1 + bi)
-        f[n] = 1.0 / (1.0 + pow(M_E, -f[n]));                       //  f = sig(Wf*x + Uf*ht_1 + bf)
-                                                                    //  c = f*ct_1 + i*tanh(Wc*x + Uc*ht_1 + bc)
+        i[n] = 1.0 / (1.0 + pow(M_E, -i[n]));                       //  i = sig(W_i*x_t + U_i*h_{t-1} + b_i)
+        f[n] = 1.0 / (1.0 + pow(M_E, -f[n]));                       //  f = sig(W_f*x_t + U_f*h_{t-1} + b_f)
+                                                                    //  c = f_t Hadamard c_{t-1} + i_t Hadamard tanh(W_c*x_t + U_c*h_{t-1} + b_c)
         layer->c[n] = f[n] * ct_1[n] + i[n] * ((2.0 / (1.0 + pow(M_E, -2.0 * c[n]))) - 1.0);
-        o[n] = 1.0 / (1.0 + pow(M_E, -o[n]));                       //  o = sig(Wo*x + Uo*ht_1 + bo)
-                                                                    //  h = o*tanh(c)
-        layer->H[ t * layer->h + n ] = o[n] * ((2.0 / (1.0 + pow(M_E, -2.0 * layer->c[n]))) - 1.0);
+        o[n] = 1.0 / (1.0 + pow(M_E, -o[n]));                       //  o = sig(W_o*x_t + U_o*h_{t-1} + b_o)
+                                                                    //  h = o_t Hadamard tanh(c_t)
+        layer->H[ n * layer->cache + t ] = o[n] * ((2.0 / (1.0 + pow(M_E, -2.0 * layer->c[n]))) - 1.0);
       }
 
     free(i);
