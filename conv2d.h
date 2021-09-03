@@ -313,8 +313,8 @@ unsigned int outputLen_Conv2D(Conv2DLayer* layer)
     #endif
 
     for(i = 0; i < layer->n; i++)
-      ctr += (unsigned int)(floor((double)(layer->inputW - layer->filters[i].w + 1) / (double)layer->filters[i].stride_h) *
-                            floor((double)(layer->inputH - layer->filters[i].h + 1) / (double)layer->filters[i].stride_v));
+      ctr += (unsigned int)( (floor((double)(layer->inputW - layer->filters[i].w) / (double)layer->filters[i].stride_h) + 1.0) *
+                             (floor((double)(layer->inputH - layer->filters[i].h) / (double)layer->filters[i].stride_v) + 1.0) );
 
     return ctr;
   }
@@ -342,8 +342,8 @@ unsigned int run_Conv2D(double* xvec, Conv2DLayer* layer)
       {
         c = 0;
         softmaxdenom = 0.0;
-        filterOutputLen = (unsigned int)(floor((double)(layer->inputW - layer->filters[i].w + 1) / (double)layer->filters[i].stride_h) *
-                                         floor((double)(layer->inputH - layer->filters[i].h + 1) / (double)layer->filters[i].stride_v));
+        filterOutputLen = (unsigned int)( (floor((double)(layer->inputW - layer->filters[i].w) / (double)layer->filters[i].stride_h) + 1.0) *
+                                          (floor((double)(layer->inputH - layer->filters[i].h) / (double)layer->filters[i].stride_v) + 1.0) );
         if((cache = (double*)malloc(filterOutputLen * sizeof(double))) == NULL)
           {
             printf("ERROR: Unable to allocate filter output buffer\n");
