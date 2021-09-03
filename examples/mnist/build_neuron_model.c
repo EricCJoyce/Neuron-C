@@ -72,11 +72,6 @@ int main(int argc, char* argv[])
       }
 
     /******************************************************************************/
-    /***************************************************************    A C C U M */
-    add_Accum(14624, nn);                                           //  Add accumulator layer (ACCUM_ARRAY, 0)
-    setName_Accum("Accum-1", nn->accumlayers);                      //  Name the first accumulator layer
-
-    /******************************************************************************/
     /***************************************************************    D E N S E */
     add_Dense(14624, 100, nn);                                      //  Add dense layer (DENSE_ARRAY, 0)
     setName_Dense("Dense-0", nn->denselayers);                      //  Name the first dense layer
@@ -111,12 +106,10 @@ int main(int argc, char* argv[])
 
     if(!linkLayers(INPUT_ARRAY, 0, 0, 784, CONV2D_ARRAY, 0, nn))    //  Connect input to conv2d[0]
       printf(">>>                Link[0] failed\n");
-    if(!linkLayers(CONV2D_ARRAY, 0, 0, 14624, ACCUM_ARRAY, 0, nn))  //  Connect conv2d[0] to accum[0]
+    if(!linkLayers(CONV2D_ARRAY, 0, 0, 14624, DENSE_ARRAY, 0, nn))  //  Connect conv2d[0] to dense[0]
       printf(">>>                Link[1] failed\n");
-    if(!linkLayers(ACCUM_ARRAY, 0, 0, 14624, DENSE_ARRAY, 0, nn))   //  Connect accum[0] to dense[0]
-      printf(">>>                Link[2] failed\n");
     if(!linkLayers(DENSE_ARRAY, 0, 0, 100, DENSE_ARRAY, 1, nn))     //  Connect dense[0] to dense[1]
-      printf(">>>                Link[3] failed\n");
+      printf(">>>                Link[2] failed\n");
 
     sortEdges(nn);
     printEdgeList(nn);
