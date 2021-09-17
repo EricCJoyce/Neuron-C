@@ -557,7 +557,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
     Node* tmp;
     unsigned int len = 0;
     Node* node;
-    Node* visited;
+    Node* visited = NULL;
     unsigned int vlen = 0;
 
     #ifdef __NEURON_DEBUG
@@ -850,7 +850,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         return false;
       }
     if(srcFlag == DENSE_ARRAY && dstFlag == LSTM_ARRAY &&           //  Dense-->LSTM
-       outputLen_Dense(nn->denselayers + src) > nn->lstmlayers[dst].d)
+       outputLen_Dense(nn->denselayers + src) != nn->lstmlayers[dst].d)
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from dense layer %d does not match input for LSTM layer %d.\n", src, dst);
@@ -858,7 +858,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         return false;
       }
     if(srcFlag == DENSE_ARRAY && dstFlag == GRU_ARRAY &&            //  Dense-->GRU
-       outputLen_Dense(nn->denselayers + src) > nn->grulayers[dst].d)
+       outputLen_Dense(nn->denselayers + src) != nn->grulayers[dst].d)
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from dense layer %d does not match input for GRU layer %d.\n", src, dst);
@@ -915,7 +915,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         return false;
       }
     if(srcFlag == CONV2D_ARRAY && dstFlag == LSTM_ARRAY &&          //  Conv2D-->LSTM
-       outputLen_Conv2D(nn->convlayers + src) > nn->lstmlayers[dst].d)
+       outputLen_Conv2D(nn->convlayers + src) != nn->lstmlayers[dst].d)
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from convolutional layer %d does not match input for LSTM layer %d.\n", src, dst);
@@ -923,7 +923,7 @@ bool linkLayers(unsigned char srcFlag, unsigned int src,
         return false;
       }
     if(srcFlag == CONV2D_ARRAY && dstFlag == GRU_ARRAY &&           //  Conv2D-->GRU
-       outputLen_Conv2D(nn->convlayers + src) > nn->grulayers[dst].d)
+       outputLen_Conv2D(nn->convlayers + src) != nn->grulayers[dst].d)
       {
         #ifdef __NEURON_DEBUG
         printf("Edge rejected because output from convolutional layer %d does not match input for GRU layer %d.\n", src, dst);
